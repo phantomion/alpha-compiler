@@ -216,6 +216,8 @@ extern char *yytext;
 
 #ifdef YY_HEADER_EXPORT_START_CONDITIONS
 #define INITIAL 0
+#define STR 1
+#define IN_COMMENT 2
 
 #endif
 
@@ -469,9 +471,9 @@ extern int yylex (void);
 #undef yyTABLES_NAME
 #endif
 
-#line 72 "analyser.l"
+#line 173 "analyzer.l"
 
 
-#line 475 "./src/analyzer.h"
+#line 477 "./src/analyzer.h"
 #undef yyIN_HEADER
 #endif /* yyHEADER_H */
