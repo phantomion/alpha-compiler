@@ -13,12 +13,14 @@
     char* operator_type(char* yytext);
     char* punctuation_type(char* yytext);
     int tokenno = 1;
+
     #define YY_DECL int alpha_yylex(alpha_token_t *yylval)
 
 %}
 
 %option header-file="./src/analyzer.h"
 %option outfile="./src/analyzer.c"
+
 %option yylineno
 %option noyywrap
 
@@ -78,7 +80,10 @@ RANGE       ".."
 COMMENT     \/\/.*$
 
 %x STR IN_COMMENT
+
+
 %%
+
 
     char string_buf[1024];
     char *string_buf_ptr;
@@ -98,31 +103,38 @@ COMMENT     \/\/.*$
     new_token->tokenno = tokenno++;
     new_token->content = string_buf;
     new_token->type = malloc(9+sizeof(string_buf));
+
     strcat(new_token->type, "STRING \"");
     strcat(new_token->type, string_buf);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-char*";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
+
 /* return string constant token type and
  * value to parser
  */
 }
+
 <STR>\n        {
     BEGIN(INITIAL);
     fprintf(yyout, "Unterminated string constant at line %d.\n", yylineno - 1);
     /* error - unterminated string constant */
     /* generate error message */
 }
-<STR>\\n  *string_buf_ptr++ = '\n';
-<STR>\\t  *string_buf_ptr++ = '\t';
-<STR>\\r  *string_buf_ptr++ = '\r';
-<STR>\\b  *string_buf_ptr++ = '\b';
-<STR>\\f  *string_buf_ptr++ = '\f';
 
-<STR>\\(.|\n)  *string_buf_ptr++ = yytext[1];
+<STR>\\n        *string_buf_ptr++ = '\n';
+<STR>\\t        *string_buf_ptr++ = '\t';
+<STR>\\r        *string_buf_ptr++ = '\r';
+<STR>\\b        *string_buf_ptr++ = '\b';
+<STR>\\f        *string_buf_ptr++ = '\f';
+<STR>\\(.|\n)   *string_buf_ptr++ = yytext[1];
 
 <STR>[^\\\n\"]+        {
     char *yptr = yytext;
@@ -130,36 +142,49 @@ COMMENT     \/\/.*$
     while ( *yptr )
         *string_buf_ptr++ = *yptr++;
 }
+
 {REAL}          {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
     new_token->content = yytext;
     new_token->type = malloc(14+sizeof(yytext));
+
     strcat(new_token->type, "CONST FLOAT \"");
     strcat(new_token->type, yytext);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-float";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
+
 {NUMBER}        {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
     new_token->content = yytext;
     new_token->type = malloc(12+sizeof(yytext));
+
     strcat(new_token->type, "CONST INT \"");
     strcat(new_token->type, yytext);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-integer";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
+
 {IF}|{ELSE}|{FOR}|{WHILE}|{BREAK}|{CONTINUE}|{FUNCTION}|{RETURN}|{LOCAL}|{AND}|{OR}|{NOT}|{TRUE}|{FALSE}|{NIL} {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -168,10 +193,14 @@ COMMENT     \/\/.*$
     new_token->type = keyword_type(yytext);
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                                                                                                               }
+}
+
 {ASSIGN}|{ADD}|{SUB}|{INC}|{DEC}|{MUL}|{LE}|{DIV}|{MOD}|{EQUAL}|{NEQ}|{GT}|{LT}|{GE} {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -180,10 +209,14 @@ COMMENT     \/\/.*$
     new_token->type = operator_type(yytext);
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                                                                                     }
+}
+
 {LCURLY}|{RCURLY}|{LBRACKET}|{RBRACKET}|{LPAREN}|{RPAREN}|{SEMICOLON}|{COLON}|{SCOPE}|{POINT}|{RANGE}|{COMA} {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -192,25 +225,35 @@ COMMENT     \/\/.*$
     new_token->type = punctuation_type(yytext);
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                                                                                                      }
+}
+
 {ID}            {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
     new_token->content = yytext;
     new_token->type = malloc(5+sizeof(yytext));
+
     strcat(new_token->type, "ID \"");
     strcat(new_token->type, yytext);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-char*";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
+
 {COMMENT}       {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -219,11 +262,16 @@ COMMENT     \/\/.*$
     new_token->type = "COMMENT LINE_COMMENT";
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
-"/*"            start_line = yylineno; end_line = yylineno; BEGIN(IN_COMMENT);
+}
+
+"/*"    start_line = yylineno; end_line = yylineno; BEGIN(IN_COMMENT);
+
 <IN_COMMENT>"*/" {
     if (tmp_nest > 0) tmp_nest--;
     else {
@@ -236,17 +284,23 @@ COMMENT     \/\/.*$
         sprintf(start, "%d", start_line);
         sprintf(end, "%d", end_line);
         new_token->content = malloc(sizeof(3 + sizeof(start) + sizeof(end)));
+
         strcat(new_token->content, start);
         strcat(new_token->content, " - ");
         strcat(new_token->content, end);
+
         new_token->type = "COMMENT BLOCK_COMMENT";
         new_token->category = "<-enumerated";
         yylval->next = new_token;
+
         fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-                new_token->tokenno, new_token->content, new_token->type, new_token->category);
+                new_token->tokenno, new_token->content, new_token->type, \
+                new_token->category);
+
         yylval = yylval->next;
     }
 }
+
 <IN_COMMENT>"/*" {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -255,19 +309,26 @@ COMMENT     \/\/.*$
     new_token->type = "COMMENT NESTED_COMMENT";
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
     tmp_nest++;
 }
-<IN_COMMENT>\n  end_line++;
-<IN_COMMENT>.   {
-}
+
+<IN_COMMENT>\n      end_line++;
+<IN_COMMENT>.       {}
 <IN_COMMENT><<EOF>> { BEGIN(INITIAL); fprintf(yyout, "Open multiline comment at EOF\n"); }
+
 {WS}            {}
 .               { fprintf(yyout, "Unknown identifier %s at line %d\n", yytext, yylineno); }
 
+
 %%
+
+
 char* keyword_type(char* yytext) {
     if (strcmp(yytext, "if") == 0) return "KEYWORD IF";
     if (strcmp(yytext, "else") == 0) return "KEYWORD ELSE";
@@ -326,6 +387,7 @@ int main(int argc, char** argv) {
         }
     }
     else yyin = stdin;
+
     if (argc > 2) {
         yyout = fopen(argv[2], "w");
     }
