@@ -562,11 +562,12 @@ char *yytext;
     char* operator_type(char* yytext);
     char* punctuation_type(char* yytext);
     int tokenno = 1;
+
     #define YY_DECL int alpha_yylex(alpha_token_t *yylval)
 
-#line 567 "./src/analyzer.c"
+#line 568 "./src/analyzer.c"
 
-#line 569 "./src/analyzer.c"
+#line 570 "./src/analyzer.c"
 
 #define INITIAL 0
 #define STR 1
@@ -785,10 +786,11 @@ YY_DECL
 		}
 
 	{
-#line 81 "analyzer.l"
+#line 85 "analyzer.l"
 
 
-#line 84 "analyzer.l"
+
+#line 89 "analyzer.l"
     char string_buf[1024];
     char *string_buf_ptr;
     int comment_nesting = 0;
@@ -797,7 +799,7 @@ YY_DECL
     int end_line = -1;
 
 
-#line 800 "./src/analyzer.c"
+#line 802 "./src/analyzer.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -866,12 +868,12 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 92 "analyzer.l"
+#line 97 "analyzer.l"
 string_buf_ptr = string_buf; BEGIN(STR);
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 94 "analyzer.l"
+#line 99 "analyzer.l"
 { /* saw closing quote - all done */
     BEGIN(INITIAL);
     *string_buf_ptr = '\0';
@@ -880,14 +882,20 @@ YY_RULE_SETUP
     new_token->tokenno = tokenno++;
     new_token->content = string_buf;
     new_token->type = malloc(9+sizeof(string_buf));
+
     strcat(new_token->type, "STRING \"");
     strcat(new_token->type, string_buf);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-char*";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
+
 /* return string constant token type and
  * value to parser
  */
@@ -896,7 +904,7 @@ YY_RULE_SETUP
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 114 "analyzer.l"
+#line 126 "analyzer.l"
 {
     BEGIN(INITIAL);
     fprintf(yyout, "Unterminated string constant at line %d.\n", yylineno - 1);
@@ -906,38 +914,38 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 120 "analyzer.l"
+#line 133 "analyzer.l"
 *string_buf_ptr++ = '\n';
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 121 "analyzer.l"
+#line 134 "analyzer.l"
 *string_buf_ptr++ = '\t';
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 122 "analyzer.l"
+#line 135 "analyzer.l"
 *string_buf_ptr++ = '\r';
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 123 "analyzer.l"
+#line 136 "analyzer.l"
 *string_buf_ptr++ = '\b';
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 124 "analyzer.l"
+#line 137 "analyzer.l"
 *string_buf_ptr++ = '\f';
 	YY_BREAK
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 126 "analyzer.l"
+#line 138 "analyzer.l"
 *string_buf_ptr++ = yytext[1];
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 128 "analyzer.l"
+#line 140 "analyzer.l"
 {
     char *yptr = yytext;
 
@@ -947,45 +955,55 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 134 "analyzer.l"
+#line 147 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
     new_token->content = yytext;
     new_token->type = malloc(14+sizeof(yytext));
+
     strcat(new_token->type, "CONST FLOAT \"");
     strcat(new_token->type, yytext);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-float";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 149 "analyzer.l"
+#line 168 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
     new_token->content = yytext;
     new_token->type = malloc(12+sizeof(yytext));
+
     strcat(new_token->type, "CONST INT \"");
     strcat(new_token->type, yytext);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-integer";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 164 "analyzer.l"
+#line 189 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -994,14 +1012,17 @@ YY_RULE_SETUP
     new_token->type = keyword_type(yytext);
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                                                                                                               }
+}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 176 "analyzer.l"
+#line 205 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -1010,14 +1031,17 @@ YY_RULE_SETUP
     new_token->type = operator_type(yytext);
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                                                                                     }
+}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 188 "analyzer.l"
+#line 221 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -1026,36 +1050,44 @@ YY_RULE_SETUP
     new_token->type = punctuation_type(yytext);
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                                                                                                      }
+}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 200 "analyzer.l"
+#line 237 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
     new_token->content = yytext;
     new_token->type = malloc(5+sizeof(yytext));
+
     strcat(new_token->type, "ID \"");
     strcat(new_token->type, yytext);
     strcat(new_token->type, "\"");
+
     new_token->category = "<-char*";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
 	YY_BREAK
 case 17:
 *yy_cp = (yy_hold_char); /* undo effects of setting up yytext */
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 215 "analyzer.l"
+#line 258 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -1064,19 +1096,22 @@ YY_RULE_SETUP
     new_token->type = "COMMENT LINE_COMMENT";
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
-                }
+}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 227 "analyzer.l"
+#line 274 "analyzer.l"
 start_line = yylineno; end_line = yylineno; BEGIN(IN_COMMENT);
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 228 "analyzer.l"
+#line 276 "analyzer.l"
 {
     if (tmp_nest > 0) tmp_nest--;
     else {
@@ -1089,21 +1124,26 @@ YY_RULE_SETUP
         sprintf(start, "%d", start_line);
         sprintf(end, "%d", end_line);
         new_token->content = malloc(sizeof(3 + sizeof(start) + sizeof(end)));
+
         strcat(new_token->content, start);
         strcat(new_token->content, " - ");
         strcat(new_token->content, end);
+
         new_token->type = "COMMENT BLOCK_COMMENT";
         new_token->category = "<-enumerated";
         yylval->next = new_token;
+
         fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-                new_token->tokenno, new_token->content, new_token->type, new_token->category);
+                new_token->tokenno, new_token->content, new_token->type, \
+                new_token->category);
+
         yylval = yylval->next;
     }
 }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 251 "analyzer.l"
+#line 305 "analyzer.l"
 {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
@@ -1112,8 +1152,11 @@ YY_RULE_SETUP
     new_token->type = "COMMENT NESTED_COMMENT";
     new_token->category = "<-enumerated";
     yylval->next = new_token;
+
     fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, new_token->category);
+            new_token->tokenno, new_token->content, new_token->type, \
+            new_token->category);
+
     yylval = yylval->next;
     tmp_nest++;
 }
@@ -1121,36 +1164,35 @@ YY_RULE_SETUP
 case 21:
 /* rule 21 can match eol */
 YY_RULE_SETUP
-#line 264 "analyzer.l"
+#line 322 "analyzer.l"
 end_line++;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 265 "analyzer.l"
-{
-}
+#line 323 "analyzer.l"
+{}
 	YY_BREAK
 case YY_STATE_EOF(IN_COMMENT):
-#line 267 "analyzer.l"
+#line 324 "analyzer.l"
 { BEGIN(INITIAL); fprintf(yyout, "Open multiline comment at EOF\n"); }
 	YY_BREAK
 case 23:
 /* rule 23 can match eol */
 YY_RULE_SETUP
-#line 268 "analyzer.l"
+#line 326 "analyzer.l"
 {}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 269 "analyzer.l"
+#line 327 "analyzer.l"
 { fprintf(yyout, "Unknown identifier %s at line %d\n", yytext, yylineno); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 271 "analyzer.l"
+#line 330 "analyzer.l"
 ECHO;
 	YY_BREAK
-#line 1153 "./src/analyzer.c"
+#line 1195 "./src/analyzer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STR):
 	yyterminate();
@@ -2168,7 +2210,9 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 271 "analyzer.l"
+#line 330 "analyzer.l"
+
+
 
 char* keyword_type(char* yytext) {
     if (strcmp(yytext, "if") == 0) return "KEYWORD IF";
@@ -2228,6 +2272,7 @@ int main(int argc, char** argv) {
         }
     }
     else yyin = stdin;
+
     if (argc > 2) {
         yyout = fopen(argv[2], "w");
     }
