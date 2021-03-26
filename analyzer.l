@@ -1,4 +1,5 @@
 %{
+    #include "parser.h"
 
     typedef struct alpha_token_t {
         int lineno;
@@ -30,8 +31,8 @@ LETTER      [a-zA-Z]
 DIGIT       [0-9]
 UNDERSCORE  [_]
 ID          {LETTER}({LETTER}|{DIGIT}|{UNDERSCORE})*
-NUMBER      -?{DIGIT}+
-REAL        -?{DIGIT}\.{DIGIT}+
+NUMBER      {DIGIT}+
+REAL        {DIGIT}+\.{DIGIT}+
 
 TRUE        "true"
 FALSE       "false"
@@ -71,7 +72,7 @@ RBRACKET    "]"
 LPAREN      "("
 RPAREN      ")"
 SEMICOLON   ";"
-COMA        ","
+COMMA        ","
 COLON       ":"
 SCOPE       "::"
 POINT       "."
@@ -162,6 +163,7 @@ COMMENT     \/\/.*$
             new_token->category);
 
     yylval = yylval->next;
+    return REAL;
 }
 
 {NUMBER}        {
@@ -183,23 +185,24 @@ COMMENT     \/\/.*$
             new_token->category);
 
     yylval = yylval->next;
+    return INTEGER;
 }
 
-{IF}|{ELSE}|{FOR}|{WHILE}|{BREAK}|{CONTINUE}|{FUNCTION}|{RETURN}|{LOCAL}|{AND}|{OR}|{NOT}|{TRUE}|{FALSE}|{NIL} {
-    alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
-    new_token->lineno = yylineno;
-    new_token->tokenno = tokenno++;
-    new_token->content = yytext;
-    new_token->type = keyword_type(yytext);
-    new_token->category = "<-enumerated";
-    yylval->next = new_token;
-
-    fprintf(yyout, "%d: #%d \"%s\" %s %s\n", new_token->lineno, \
-            new_token->tokenno, new_token->content, new_token->type, \
-            new_token->category);
-
-    yylval = yylval->next;
-}
+{IF} {return IF;}
+{ELSE} {return ELSE;}
+{FOR} {return FOR;}
+{WHILE} {return WHILE;}
+{BREAK}
+{CONTINUE}
+{FUNCTION}
+{RETURN}
+{LOCAL}
+{AND}
+{OR}
+{NOT}
+{TRUE}
+{FALSE}
+{NIL} {return NIL;}
 
 {ASSIGN}|{ADD}|{SUB}|{INC}|{DEC}|{MUL}|{LE}|{DIV}|{MOD}|{EQUAL}|{NEQ}|{GT}|{LT}|{GE} {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
@@ -217,7 +220,7 @@ COMMENT     \/\/.*$
     yylval = yylval->next;
 }
 
-{LCURLY}|{RCURLY}|{LBRACKET}|{RBRACKET}|{LPAREN}|{RPAREN}|{SEMICOLON}|{COLON}|{SCOPE}|{POINT}|{RANGE}|{COMA} {
+{LCURLY}|{RCURLY}|{LBRACKET}|{RBRACKET}|{LPAREN}|{RPAREN}|{SEMICOLON}|{COLON}|{SCOPE}|{POINT}|{RANGE}|{COMMA} {
     alpha_token_t* new_token = malloc(sizeof(struct alpha_token_t));
     new_token->lineno = yylineno;
     new_token->tokenno = tokenno++;
@@ -374,7 +377,7 @@ char* punctuation_type(char* yytext) {
     if (strcmp(yytext, ";") == 0) return "PUNCTUATION SEMICOLON";
     if (strcmp(yytext, ":") == 0) return "PUNCTUATION COLON";
     if (strcmp(yytext, "::") == 0) return "PUNCTUATION SCOPE";
-    if (strcmp(yytext, ",") == 0) return "PUNCTUATION COMA";
+    if (strcmp(yytext, ",") == 0) return "PUNCTUATION COMMA";
     if (strcmp(yytext, ".") == 0) return "PUNCTUATION POINT";
     if (strcmp(yytext, "..") == 0) return "PUNCTUATION RANGE";
 }

@@ -10,6 +10,7 @@ if num >= 2 {
         break;
     }
 }
+32.5
 local str = "enas\nmala\"kas"
 local mhtsos = 3
 /* aksjdlaksjdalskdjaslkdjasld
