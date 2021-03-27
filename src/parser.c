@@ -70,14 +70,56 @@
 #line 1 "parser.y"
 
     #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
     int yyerror(char* message);
     int alpha_yylex(alpha_token_t *yylval);
 
-extern int yylineno;
+    extern int yylineno;
     extern char* yytext;
     extern FILE* yyin;
+    #define MAX 509
+    #define HASH_MULTIPLIER 65599
+    #define null NULL
 
-#line 81 "./src/parser.c"
+    typedef struct Variable {
+        const char* name;
+        unsigned int scope;
+        unsigned int line;
+    }Variable;
+
+    typedef struct Function {
+        const char* name;
+        const char** args;
+        unsigned int scope;
+        unsigned int line;
+    }Function;
+
+    enum SymbolType {
+        GLOBAL, LOCAL, FORMAL,
+        USERFUNC, LIBFUNC
+    };
+
+    typedef struct SymbolTableEntry {
+        const char* key;
+        short int isActive;
+        union {
+            Variable* varVal;
+            Function* funcVal;
+        }value;
+        enum SymbolType type;
+        struct SymbolTableEntry* next;
+    }SymbolTableEntry;
+
+    SymbolTableEntry* symtable[MAX];
+
+    unsigned int symTableHash(const char* key);
+    int ins(const char *key, const void *pvValue);
+    void* lookup(const char *key);
+    void hide(const char* key);
+
+#line 123 "./src/parser.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -552,16 +594,16 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    32,    32,    34,    35,    36,    37,    38,    39,    40,
-      41,    42,    43,    44,    47,    48,    51,    52,    53,    56,
-      56,    56,    56,    56,    56,    56,    56,    56,    56,    56,
-      56,    56,    59,    60,    61,    62,    63,    64,    65,    66,
-      69,    71,    72,    73,    74,    75,    78,    79,    80,    81,
-      84,    85,    86,    87,    90,    91,    92,    95,    96,    99,
-     101,   103,   104,   105,   108,   109,   112,   113,   116,   117,
-     118,   121,   122,   125,   127,   128,   131,   133,   133,   133,
-     133,   133,   135,   136,   137,   140,   141,   144,   145,   148,
-     150,   152
+       0,    74,    74,    76,    77,    78,    79,    80,    81,    82,
+      83,    84,    85,    86,    89,    90,    93,    94,    95,    98,
+      98,    98,    98,    98,    98,    98,    98,    98,    98,    98,
+      98,    98,   101,   102,   103,   104,   105,   106,   107,   108,
+     111,   113,   114,   115,   116,   117,   120,   121,   122,   123,
+     126,   127,   128,   129,   132,   133,   134,   137,   138,   141,
+     143,   145,   146,   147,   150,   151,   154,   155,   158,   159,
+     160,   163,   164,   167,   169,   170,   173,   175,   175,   175,
+     175,   175,   177,   178,   179,   182,   183,   186,   187,   190,
+     192,   194
 };
 #endif
 
@@ -1308,7 +1350,7 @@ yyreduce:
   switch (yyn)
     {
 
-#line 1312 "./src/parser.c"
+#line 1354 "./src/parser.c"
 
       default: break;
     }
@@ -1502,3 +1544,114 @@ yyreturn:
   return yyresult;
 }
 
+#line 196 "parser.y"
+
+
+
+char* itoa(int val, int base){
+	static char buf[32] = {0};
+	int i = 30;
+
+	for(; val && i ; --i, val /= base)
+		buf[i] = "0123456789abcdef"[val % base];
+
+	return &buf[i+1];
+}
+
+
+char* get_key(const Variable* var, const Function* func) {
+    char* key;
+    if(var){
+        strcpy(key, var->name);
+        strcat(key, itoa(var->scope, 10));
+    }
+    else if(func){
+        strcpy(key, func->name);
+        strcat(key, itoa(func->scope, 10));
+    }
+    return key;
+}
+
+
+unsigned int SymTable_hash(const char *pcKey) {
+  	size_t ui;
+  	unsigned int uiHash = 0U;
+  	for (ui = 0U; pcKey[ui] != '\0'; ui++)
+    	uiHash = uiHash * HASH_MULTIPLIER + pcKey[ui];
+  	return uiHash%MAX;
+}
+
+
+int SymTable_put(Variable* var, Function* func, enum SymbolType type) {
+    unsigned int hash = SymTable_hash(get_key(var, func));
+
+	SymbolTableEntry* binding = symtable[hash];
+	SymbolTableEntry* prev = null;
+	SymbolTableEntry* new;
+
+	new = malloc(sizeof(SymbolTableEntry));
+    new->isActive = 1;
+    new->value.varVal = var;
+    new->value.funcVal = func;
+    new->type = type;
+	new->next = null;
+
+	while(binding) {
+        unsigned int binding_hash = SymTable_hash(get_key(binding->value.varVal, binding->value.funcVal));
+        if(binding_hash == hash){
+            if(binding->isActive) return 0;
+            new->next = binding->next;
+            free(binding);
+        }
+		prev = binding;
+		binding = binding->next;
+	}
+
+	if (prev) prev->next = new;
+	else symtable[hash] = new;
+	return 1;
+}
+
+
+int SymTable_hide(const Variable* var, const Function* func) {
+    int hash = SymTable_hash(get_key(var, func));
+
+	SymbolTableEntry* binding = symtable[hash];
+	while(binding) {
+        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+        if(SymTable_hash(binding_key) == hash){
+			binding->isActive = 0;
+			return 1;
+		}
+        binding = binding->next;
+	}
+	return 0;
+}
+
+
+int SymTable_contains(const Variable* var, const Function* func){
+	unsigned int hash = SymTable_hash(get_key(var, func));
+	SymbolTableEntry* binding = symtable[hash];
+	while (binding) {
+        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+        if(SymTable_hash(binding_key) == hash){
+			return 1;
+		}
+		binding = binding->next;
+	}
+	return 0;
+}
+
+
+SymbolTableEntry* SymTable_get(const Variable* var, const Function* func) {
+	unsigned int hash = SymTable_hash(get_key(var, func));
+	SymbolTableEntry* binding = symtable[hash];
+	while (binding) {
+        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+        if(SymTable_hash(binding_key) == hash){
+			return binding;
+		}
+		binding = binding->next;
+	}
+	return null;
+}
