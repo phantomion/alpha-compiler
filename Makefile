@@ -14,6 +14,10 @@ OBJS := $(SRC:%.c=$(OBJ_DIR)/%.o)
 
 all: directories $(TARGET)
 
+parsers:
+	lex analyzer.l
+	bison parser.y
+
 $(OBJ_DIR)/%.o: %.c
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@

@@ -54,14 +54,82 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    id = 258                       /* id  */
+    ID = 258,                      /* ID  */
+    TRUE = 259,                    /* TRUE  */
+    FALSE = 260,                   /* FALSE  */
+    NIL = 261,                     /* NIL  */
+    IF = 262,                      /* IF  */
+    ELSE = 263,                    /* ELSE  */
+    WHILE = 264,                   /* WHILE  */
+    FOR = 265,                     /* FOR  */
+    FUNCTION = 266,                /* FUNCTION  */
+    RETURN = 267,                  /* RETURN  */
+    BREAK = 268,                   /* BREAK  */
+    CONTINUE = 269,                /* CONTINUE  */
+    LOCAL = 270,                   /* LOCAL  */
+    AND = 271,                     /* AND  */
+    OR = 272,                      /* OR  */
+    NOT = 273,                     /* NOT  */
+    NUMBER = 274,                  /* NUMBER  */
+    STRING = 275,                  /* STRING  */
+    ASSIGN = 276,                  /* ASSIGN  */
+    ADD = 277,                     /* ADD  */
+    INC = 278,                     /* INC  */
+    SUB = 279,                     /* SUB  */
+    DEC = 280,                     /* DEC  */
+    MUL = 281,                     /* MUL  */
+    DIV = 282,                     /* DIV  */
+    MOD = 283,                     /* MOD  */
+    EQUAL = 284,                   /* EQUAL  */
+    NEQ = 285,                     /* NEQ  */
+    GT = 286,                      /* GT  */
+    LT = 287,                      /* LT  */
+    GE = 288,                      /* GE  */
+    LE = 289,                      /* LE  */
+    LCURLY = 290,                  /* LCURLY  */
+    RCURLY = 291,                  /* RCURLY  */
+    LBRACKET = 292,                /* LBRACKET  */
+    RBRACKET = 293,                /* RBRACKET  */
+    LPAREN = 294,                  /* LPAREN  */
+    RPAREN = 295,                  /* RPAREN  */
+    SEMICOLON = 296,               /* SEMICOLON  */
+    COMMA = 297,                   /* COMMA  */
+    COLON = 298,                   /* COLON  */
+    SCOPE = 299,                   /* SCOPE  */
+    POINT = 300,                   /* POINT  */
+    RANGE = 301,                   /* RANGE  */
+    PRINT = 302,                   /* PRINT  */
+    INPUT = 303,                   /* INPUT  */
+    OBJECTMEMBERKEYS = 304,        /* OBJECTMEMBERKEYS  */
+    OBJECTTOTALMEMBERS = 305,      /* OBJECTTOTALMEMBERS  */
+    OBJECTCOPY = 306,              /* OBJECTCOPY  */
+    TOTALARGUMENTS = 307,          /* TOTALARGUMENTS  */
+    ARGUMENT = 308,                /* ARGUMENT  */
+    TYPEOF = 309,                  /* TYPEOF  */
+    STRTONUM = 310,                /* STRTONUM  */
+    SQRT = 311,                    /* SQRT  */
+    COS = 312,                     /* COS  */
+    SIN = 313                      /* SIN  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+union YYSTYPE
+{
+#line 55 "parser.y"
+
+    int intVal;
+    char* strVal;
+    double doubleVal;
+    SymbolTableEntry* exprNode;
+    int lineno;
+
+#line 130 "./src/parser.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

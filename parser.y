@@ -4,7 +4,7 @@
     #include <string.h>
 
     int yyerror(char* message);
-    int alpha_yylex(alpha_token_t *yylval);
+    int alpha_yylex();
 
     extern int yylineno;
     extern char* yytext;
@@ -52,38 +52,102 @@
 
 %defines
 %output "./src/parser.c"
+%union {
+    int intVal;
+    char* strVal;
+    double doubleVal;
+    SymbolTableEntry* exprNode;
+    int lineno;
+}
 
 %start program
 
-%token id
+%token ID
+%token TRUE
+%token FALSE
+%token NIL
+%token IF
+%token ELSE
+%token WHILE
+%token FOR
+%token FUNCTION
+%token RETURN
+%token BREAK
+%token CONTINUE
+%token LOCAL
+%token AND
+%token OR
+%token NOT
+%token NUMBER
+%token STRING
 
-%right '='
-%right "not" "++" "--"
-%left ','
-%left "or"
-%left "and"
-%left '+' '-'
-%left '*' '/' '%'
-%left '.' ".."
-%left '[' ']'
-%left '(' ')'
-%nonassoc "==" "!="
-%nonassoc '>' ">=" '<' "<="
+%token ASSIGN
+%token ADD
+%token INC
+%token SUB
+%token DEC
+%token MUL
+%token DIV
+%token MOD
+%token EQUAL
+%token NEQ
+%token GT
+%token LT
+%token GE
+%token LE
+
+%token LCURLY
+%token RCURLY
+%token LBRACKET
+%token RBRACKET
+%token LPAREN
+%token RPAREN
+%token SEMICOLON
+%token COMMA
+%token COLON
+%token SCOPE
+%token POINT
+%token RANGE
+%token PRINT
+%token INPUT
+%token OBJECTMEMBERKEYS
+%token OBJECTTOTALMEMBERS
+%token OBJECTCOPY
+%token TOTALARGUMENTS
+%token ARGUMENT
+%token TYPEOF
+%token STRTONUM
+%token SQRT
+%token COS
+%token SIN
+
+%right ASSIGN
+%right NOT INC DEC
+%left COMMA
+%left OR
+%left AND
+%left ADD SUB
+%left MUL DIV MOD
+%left POINT RANGE
+%left LBRACKET RBRACKET
+%left LPAREN RPAREN
+%nonassoc EQUAL NEQ
+%nonassoc GT GE LT LE
+%precedence RCURLY
 
 %%
 program: stmt_list;
 
-stmt: expr ';'
+stmt: expr SEMICOLON
         | ifstmt
         | whilestmt
         | forstmt
         | returnstmt
-        | "break" ';'
-        | "continue" ';'
+        | BREAK SEMICOLON
+        | CONTINUE SEMICOLON
         | block
         | funcdef
-        | ';'
-        |
+        | SEMICOLON
         ;
 
 stmt_list: stmt stmt_list
@@ -95,103 +159,108 @@ expr: assignexpr
         | term
         ;
 
-op: '+' | '-' | '*' | '/' | '%' | '>' | ">=" | '<' | "<=" | "==" | "!=" | "and"| "or";
+op: ADD | SUB | MUL | DIV | MOD | GT | GE | LT | LE | EQUAL | NEQ | AND | OR;
 
 
-term: '(' expr ')'
-        | '-' expr
-        | "not" expr
-        | "++"lvalue
-        | lvalue"++"
-        | "--"lvalue
-        | lvalue"--"
+term: RPAREN expr LPAREN
+        | SUB expr
+        | NOT expr
+        | INC lvalue
+        | lvalue INC
+        | DEC lvalue
+        | lvalue DEC
         | primary
         ;
 
-assignexpr: lvalue '=' expr;
+assignexpr: lvalue ASSIGN expr;
 
 primary: lvalue
         | call
         | objectdef
-        | '(' funcdef ')'
+        | RPAREN funcdef LPAREN
         | const
         ;
 
-lvalue: id
-        | "local" id
-        | "::" id
+lvalue: ID
+        | LOCAL ID
+        | SCOPE ID
         | member
         ;
 
-member: lvalue '.' id
-        | lvalue '[' expr ']'
-        | call '.' id
-        | call '[' expr ']'
+member: lvalue POINT ID
+        | lvalue LBRACKET expr RBRACKET
+        | call POINT ID
+        | call LBRACKET expr RBRACKET
         ;
 
-call: call '(' elist ')'
+call: call LPAREN elist RPAREN
         | lvalue callsuffix
-        | '(' funcdef ')' '(' elist ')'
+        | LPAREN funcdef RPAREN LPAREN elist RPAREN
         ;
 
 callsuffix: normcall
         | methodcall
         ;
 
-normcall: '(' elist ')';
+normcall: LPAREN elist RPAREN;
 
-methodcall: ".." id '(' elist ')';
+methodcall: RANGE ID LPAREN elist RPAREN;
 
 elist:  expr
         | expr commaexpr
-        |
         ;
 
-commaexpr: ',' expr commaexpr
+commaexpr: COMMA expr commaexpr
          |
          ;
 
-objectdef: '[' elist ']'
-        | '[' indexed ']'
+objectdef: LBRACKET elist RBRACKET
+        | LBRACKET indexed RBRACKET
         ;
 
 indexed: indexelem
         | indexelem indexelemlist
-        |
         ;
 
-indexelemlist: ',' indexelem indexelemlist
+indexelemlist: COMMA indexelem indexelemlist
              |
              ;
 
-indexelem: '{' expr ':' expr '}';
+indexelem: LCURLY expr COLON expr RCURLY;
 
-block: '{' stmt_list '}'
-     | '{' '}'
+funcdef: FUNCTION ID LPAREN idlist RPAREN block
+       |FUNCTION LPAREN idlist RPAREN block
+       | FUNCTION libraryfuncs LPAREN idlist RPAREN block
+       ;
+
+block: LCURLY stmt_list RCURLY
+     | LCURLY RCURLY
      ;
 
-funcdef: "function" [id] '(' idlist ')' block;
+libraryfuncs: PRINT | INPUT | OBJECTMEMBERKEYS | OBJECTTOTALMEMBERS
+            | OBJECTCOPY | TOTALARGUMENTS | ARGUMENT | TYPEOF
+            | STRTONUM | SQRT | COS | SIN
 
-const: "number" | "string" | "nil" | "true" | "false";
+const: NUMBER | STRING | NIL | TRUE | FALSE;
 
-idlist: id
-      | id commaidlist
+idlist:ID
+      | ID commaidlist
       |
       ;
 
-commaidlist: ',' id commaidlist
+commaidlist: COMMA ID commaidlist
            |
            ;
 
-ifstmt: "if" '(' expr ')' stmt
-      | "if" '(' expr ')' stmt "else" stmt
+ifstmt: IF LPAREN expr RPAREN stmt
+      | IF LPAREN expr RPAREN stmt ELSE stmt
       ;
 
-whilestmt: "while" '(' expr ')' stmt;
+whilestmt: WHILE LPAREN expr RPAREN stmt;
 
-forstmt: "for" '(' elist';' expr';' elist')' stmt;
+forstmt: FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN stmt;
 
-returnstmt: "return" '['expr']' ';';
+returnstmt: RETURN LBRACKET expr RBRACKET SEMICOLON;
 
 %%
 
