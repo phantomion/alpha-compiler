@@ -1,10 +1,12 @@
 %{
+
     #include <stdio.h>
-    #include <stdlib.h>
     #include <string.h>
+
 
     int yyerror(char* message);
     int alpha_yylex();
+
 
     extern int yylineno;
     extern char* yytext;
@@ -13,11 +15,13 @@
     #define HASH_MULTIPLIER 65599
     #define null NULL
 
+
     typedef struct Variable {
         const char* name;
         unsigned int scope;
         unsigned int line;
     }Variable;
+
 
     typedef struct Function {
         const char* name;
@@ -26,10 +30,12 @@
         unsigned int line;
     }Function;
 
+
     enum SymbolType {
         GLOBAL, LOCAL, FORMAL,
         USERFUNC, LIBFUNC
     };
+
 
     typedef struct SymbolTableEntry {
         const char* key;
@@ -42,13 +48,17 @@
         struct SymbolTableEntry* next;
     }SymbolTableEntry;
 
+
     SymbolTableEntry* symtable[MAX];
+
 
     unsigned int symTableHash(const char* key);
     int ins(const char *key, const void *pvValue);
     void* lookup(const char *key);
     void hide(const char* key);
+
 %}
+
 
 %defines
 %output "./src/parser.c"
@@ -59,6 +69,7 @@
     SymbolTableEntry* exprNode;
     int lineno;
 }
+
 
 %start program
 
@@ -135,132 +146,164 @@
 %nonassoc GT GE LT LE
 %precedence RCURLY
 
+
 %%
-program: stmt_list;
-
-stmt: expr SEMICOLON
-        | ifstmt
-        | whilestmt
-        | forstmt
-        | returnstmt
-        | BREAK SEMICOLON
-        | CONTINUE SEMICOLON
-        | block
-        | funcdef
-        | SEMICOLON
-        ;
-
-stmt_list: stmt stmt_list
-         |
-         ;
-
-expr: assignexpr
-        | expr op expr
-        | term
-        ;
-
-op: ADD | SUB | MUL | DIV | MOD | GT | GE | LT | LE | EQUAL | NEQ | AND | OR;
 
 
-term: RPAREN expr LPAREN
-        | SUB expr
-        | NOT expr
-        | INC lvalue
-        | lvalue INC
-        | DEC lvalue
-        | lvalue DEC
-        | primary
-        ;
+program:    stmt_list;
+
+stmt:       expr SEMICOLON
+            | ifstmt
+            | whilestmt
+            | forstmt
+            | returnstmt
+            | BREAK SEMICOLON
+            | CONTINUE SEMICOLON
+            | block
+            | funcdef
+            | SEMICOLON
+            ;
+
+
+stmt_list:  stmt stmt_list
+            |
+            ;
+
+
+expr:       assignexpr
+            | expr op expr
+            | term
+            ;
+
+
+op:         ADD | SUB | MUL | DIV | MOD | GT | GE | LT | LE | EQUAL | NEQ | AND | OR;
+
+
+term:       RPAREN expr LPAREN
+            | SUB expr
+            | NOT expr
+            | INC lvalue
+            | lvalue INC
+            | DEC lvalue
+            | lvalue DEC
+            | primary
+            ;
+
 
 assignexpr: lvalue ASSIGN expr;
 
-primary: lvalue
-        | call
-        | objectdef
-        | RPAREN funcdef LPAREN
-        | const
-        ;
 
-lvalue: ID
-        | LOCAL ID
-        | SCOPE ID
-        | member
-        ;
+primary:    lvalue
+            | call
+            | objectdef
+            | RPAREN funcdef LPAREN
+            | const
+            ;
 
-member: lvalue POINT ID
-        | lvalue LBRACKET expr RBRACKET
-        | call POINT ID
-        | call LBRACKET expr RBRACKET
-        ;
 
-call: call LPAREN elist RPAREN
-        | lvalue callsuffix
-        | LPAREN funcdef RPAREN LPAREN elist RPAREN
-        ;
+lvalue:     ID
+            | LOCAL ID
+            | SCOPE ID
+            | member
+            ;
+
+
+member:     lvalue POINT ID
+            | lvalue LBRACKET expr RBRACKET
+            | call POINT ID
+            | call LBRACKET expr RBRACKET
+            ;
+
+
+call:       call LPAREN elist RPAREN
+            | lvalue callsuffix
+            | LPAREN funcdef RPAREN LPAREN elist RPAREN
+            ;
+
 
 callsuffix: normcall
-        | methodcall
-        ;
+            | methodcall
+            ;
 
-normcall: LPAREN elist RPAREN;
+
+normcall:   LPAREN elist RPAREN;
+
 
 methodcall: RANGE ID LPAREN elist RPAREN;
 
-elist:  expr
-        | expr commaexpr
-        ;
 
-commaexpr: COMMA expr commaexpr
-         |
-         ;
+elist:      expr
+            | expr commaexpr
+            ;
 
-objectdef: LBRACKET elist RBRACKET
-        | LBRACKET indexed RBRACKET
-        ;
 
-indexed: indexelem
-        | indexelem indexelemlist
-        ;
+commaexpr:  COMMA expr commaexpr
+            |
+            ;
 
-indexelemlist: COMMA indexelem indexelemlist
-             |
-             ;
 
-indexelem: LCURLY expr COLON expr RCURLY;
+objectdef:  LBRACKET elist RBRACKET
+            | LBRACKET indexed RBRACKET
+            ;
 
-funcdef: FUNCTION ID LPAREN idlist RPAREN block
-       |FUNCTION LPAREN idlist RPAREN block
-       | FUNCTION libraryfuncs LPAREN idlist RPAREN block
-       ;
 
-block: LCURLY stmt_list RCURLY
-     | LCURLY RCURLY
-     ;
+indexed:    indexelem
+            | indexelem indexelemlist
+            ;
 
-libraryfuncs: PRINT | INPUT | OBJECTMEMBERKEYS | OBJECTTOTALMEMBERS
-            | OBJECTCOPY | TOTALARGUMENTS | ARGUMENT | TYPEOF
-            | STRTONUM | SQRT | COS | SIN
 
-const: NUMBER | STRING | NIL | TRUE | FALSE;
+indexelemlist:  COMMA indexelem indexelemlist
+                |
+                ;
 
-idlist:ID
-      | ID commaidlist
-      |
-      ;
 
-commaidlist: COMMA ID commaidlist
-           |
-           ;
+indexelem:  LCURLY expr COLON expr RCURLY;
 
-ifstmt: IF LPAREN expr RPAREN stmt
-      | IF LPAREN expr RPAREN stmt ELSE stmt
-      ;
 
-whilestmt: WHILE LPAREN expr RPAREN stmt;
+funcdef:    FUNCTION ID LPAREN idlist RPAREN block
+            |FUNCTION LPAREN idlist RPAREN block
+            | FUNCTION libraryfuncs LPAREN idlist RPAREN block
+            ;
 
-forstmt: FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN stmt;
+
+block:      LCURLY stmt_list RCURLY
+            | LCURLY RCURLY
+            ;
+
+
+libraryfuncs:   PRINT | INPUT | OBJECTMEMBERKEYS | OBJECTTOTALMEMBERS
+                | OBJECTCOPY | TOTALARGUMENTS | ARGUMENT | TYPEOF
+                | STRTONUM | SQRT | COS | SIN
+                ;
+
+
+const:      NUMBER | STRING | NIL | TRUE | FALSE;
+
+
+idlist:     ID
+            | ID commaidlist
+            |
+            ;
+
+
+commaidlist:COMMA ID commaidlist
+            |
+            ;
+
+
+ifstmt:     IF LPAREN expr RPAREN stmt
+            | IF LPAREN expr RPAREN stmt ELSE stmt
+            ;
+
+
+whilestmt:  WHILE LPAREN expr RPAREN stmt;
+
+
+forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN stmt;
+
 
 returnstmt: RETURN LBRACKET expr RBRACKET SEMICOLON;
+
 
 %%
 
@@ -269,7 +312,7 @@ char* itoa(int val, int base){
 	static char buf[32] = {0};
 	int i = 30;
 
-	for(; val && i ; --i, val /= base)
+	for(; val && i; --i, val /= base)
 		buf[i] = "0123456789abcdef"[val % base];
 
 	return &buf[i+1];
@@ -293,7 +336,7 @@ char* get_key(const Variable* var, const Function* func) {
 }
 
 
-unsigned int SymTable_hash(const char *pcKey) {
+unsigned int symtable_hash(const char *pcKey) {
 
   	size_t ui;
   	unsigned int uiHash = 0U;
@@ -305,9 +348,9 @@ unsigned int SymTable_hash(const char *pcKey) {
 }
 
 
-int insert(Variable* var, Function* func, enum SymbolType type) {
+int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 
-    unsigned int hash = SymTable_hash(get_key(var, func));
+    unsigned int hash = symtable_hash(get_key(var, func));
 
 	SymbolTableEntry* binding = symtable[hash];
 	SymbolTableEntry* prev = null;
@@ -321,11 +364,12 @@ int insert(Variable* var, Function* func, enum SymbolType type) {
 	new->next = null;
 
 	while(binding) {
-        unsigned int binding_hash = SymTable_hash(get_key(binding->value.varVal, binding->value.funcVal));
+        unsigned int binding_hash = symtable_hash(get_key(binding->value.varVal, binding->value.funcVal));
 
         if(binding_hash == hash){
 
-            if(binding->isActive) return 0;
+            if(binding->isActive)
+                return 0;
             new->next = binding->next;
             free(binding);
         }
@@ -341,15 +385,15 @@ int insert(Variable* var, Function* func, enum SymbolType type) {
 }
 
 
-int hide(const Variable* var, const Function* func) {
+int symtable_hide(const Variable* var, const Function* func) {
 
-    int hash = SymTable_hash(get_key(var, func));
+    int hash = symtable_hash(get_key(var, func));
 	SymbolTableEntry* binding = symtable[hash];
 
 	while(binding) {
         char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
 
-        if(SymTable_hash(binding_key) == hash){
+        if(symtable_hash(binding_key) == hash){
 			binding->isActive = 0;
 			return 1;
 		}
@@ -361,15 +405,15 @@ int hide(const Variable* var, const Function* func) {
 }
 
 
-int contains(const Variable* var, const Function* func){
+int symtable_contains(const Variable* var, const Function* func){
 
-	unsigned int hash = SymTable_hash(get_key(var, func));
+	unsigned int hash = symtable_hash(get_key(var, func));
 	SymbolTableEntry* binding = symtable[hash];
 
 	while (binding) {
         char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
 
-        if(SymTable_hash(binding_key) == hash)
+        if(symtable_hash(binding_key) == hash)
 			return 1;
 
 		binding = binding->next;
@@ -379,15 +423,15 @@ int contains(const Variable* var, const Function* func){
 }
 
 
-SymbolTableEntry* lookup(const Variable* var, const Function* func) {
+SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func) {
 
-	unsigned int hash = SymTable_hash(get_key(var, func));
+	unsigned int hash = symtable_hash(get_key(var, func));
 	SymbolTableEntry* binding = symtable[hash];
 
 	while (binding) {
         char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
 
-        if(SymTable_hash(binding_key) == hash)
+        if(symtable_hash(binding_key) == hash)
 			return binding;
 
 		binding = binding->next;
