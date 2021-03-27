@@ -305,7 +305,7 @@ unsigned int SymTable_hash(const char *pcKey) {
 }
 
 
-int SymTable_put(Variable* var, Function* func, enum SymbolType type) {
+int insert(Variable* var, Function* func, enum SymbolType type) {
 
     unsigned int hash = SymTable_hash(get_key(var, func));
 
@@ -341,7 +341,7 @@ int SymTable_put(Variable* var, Function* func, enum SymbolType type) {
 }
 
 
-int SymTable_hide(const Variable* var, const Function* func) {
+int hide(const Variable* var, const Function* func) {
 
     int hash = SymTable_hash(get_key(var, func));
 	SymbolTableEntry* binding = symtable[hash];
@@ -361,7 +361,7 @@ int SymTable_hide(const Variable* var, const Function* func) {
 }
 
 
-int SymTable_contains(const Variable* var, const Function* func){
+int contains(const Variable* var, const Function* func){
 
 	unsigned int hash = SymTable_hash(get_key(var, func));
 	SymbolTableEntry* binding = symtable[hash];
@@ -379,7 +379,7 @@ int SymTable_contains(const Variable* var, const Function* func){
 }
 
 
-SymbolTableEntry* SymTable_get(const Variable* var, const Function* func) {
+SymbolTableEntry* lookup(const Variable* var, const Function* func) {
 
 	unsigned int hash = SymTable_hash(get_key(var, func));
 	SymbolTableEntry* binding = symtable[hash];
