@@ -1,4 +1,5 @@
 %{
+
     #include <stdio.h>
     #include <string.h>
 
@@ -40,17 +41,21 @@
         }value;
         enum SymbolType type;
         struct SymbolTableEntry* next;
+        struct SymbolTableEntry* next_in_scope;
     }SymbolTableEntry;
 
     SymbolTableEntry* symtable[MAX];
+    SymbolTableEntry* scope_link[MAX];
 
     char* itoa(int val);
-    char* get_key(const Variable* var, const Function* func);
     unsigned int symtable_hash(const char *pcKey);
     int symtable_insert(Variable* var, Function* func, enum SymbolType type);
-    int symtable_hide(const unsigned int scope);
-    int symtable_contains(const Variable* var, const Function* func);
-    SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func);
+    int hide_scope(const unsigned int scope);
+    int symtable_contains(const Variable* var, const Function* func, enum SymbolType type);
+    int scope_contains(const Variable* var, const Function* func, enum SymbolType type);
+    SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func, enum SymbolType type);
+    SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum SymbolType type);
+
 %}
 
 
@@ -280,7 +285,7 @@ funcdef:    FUNCTION ID {printf("function with id %s line %d\n", $2, yylineno);}
             ;
 
 
-block:      LCURLY {scope++;} stmt_list RCURLY {symtable_hide(scope--);}
+block:      LCURLY {scope++;} stmt_list RCURLY {hide_scope(scope--);}
             | LCURLY RCURLY
             ;
 
@@ -331,6 +336,9 @@ int yyerror(char* message) {
     return 1;
 }
 
+
+// Int to String implementation because C
+// IT MAY BE USELESS WE'LL SEE
 char* itoa(int val){
 
 	static char buf[32] = {0};
@@ -343,23 +351,7 @@ char* itoa(int val){
 }
 
 
-char* get_key(const Variable* var, const Function* func) {
-
-    char* key = malloc(strlen(var->name) + strlen(itoa(var->scope)));
-
-    if(var){
-        strcpy(key, var->name);
-        strcat(key, itoa(var->scope));
-    }
-    else if(func){
-        strcpy(key, func->name);
-        strcat(key, itoa(func->scope));
-    }
-
-    return key;
-}
-
-
+// Hash Function
 unsigned int symtable_hash(const char *pcKey) {
 
   	size_t ui;
@@ -372,12 +364,17 @@ unsigned int symtable_hash(const char *pcKey) {
 }
 
 
+// Insert an entry to the Symbol Table AND the Scope Link
+// !!! Anything can be added except if every field (name, scope, type) is the same, then return error !!!
+// ^^^^ That must be fixed once we understand the rules for definitions and redeclarations
 int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 
-    unsigned int hash = symtable_hash(get_key(var, func));
+    unsigned int hash = symtable_hash(var ? var->name : func->name);
 
-	SymbolTableEntry* binding = symtable[hash];
-	SymbolTableEntry* prev = null;
+	SymbolTableEntry* table_entry = symtable[hash];
+	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
+	SymbolTableEntry* table_prev = null;
+	SymbolTableEntry* scope_prev = null;
 	SymbolTableEntry* new;
 
 	new = malloc(sizeof(SymbolTableEntry));
@@ -386,88 +383,154 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
     new->value.funcVal = func;
     new->type = type;
 	new->next = null;
+    new->next_in_scope = null;
 
-	while(binding) {
-        unsigned int binding_hash = symtable_hash(get_key(binding->value.varVal, binding->value.funcVal));
+	while(table_entry) {
 
-        if(binding_hash == hash){
-
-            if(binding->isActive)
-                return 0;
-
-            new->next = binding->next;
-            free(binding->value.varVal);
-            free(binding->value.funcVal);
-            free(binding);
+        if(var && table_entry->value.varVal){
+            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && var->scope == table_entry->value.varVal->scope && type == table_entry->type){
+                free(new);
+			    return 0;
+            }
+        }
+        else if(func && table_entry->value.funcVal){
+            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && func->scope == table_entry->value.funcVal->scope && type == table_entry->type){
+                free(new);
+			    return 0;
+            }
         }
 
-		prev = binding;
-		binding = binding->next;
+		table_prev = table_entry;
+		table_entry = table_entry->next;
 	}
 
-	if (prev) prev->next = new;
+	while(scope_entry) {
+
+        if(var && scope_entry->value.varVal){
+            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && var->scope == scope_entry->value.varVal->scope && type == scope_entry->type){
+                free(new);
+			    return 0;
+            }
+        }
+        else if(func && scope_entry->value.funcVal){
+            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && func->scope == scope_entry->value.funcVal->scope && type == scope_entry->type){
+                free(new);
+			    return 0;
+            }
+        }
+
+		scope_prev = scope_entry;
+		scope_entry = scope_entry->next_in_scope;
+	}
+
+	if   (table_prev) table_prev->next = new;
 	else symtable[hash] = new;
 
-	return 1;
-}
-
-
-int symtable_hide(const unsigned int scope) {
-
-    SymbolTableEntry* binding;
-
-    for(short int i = 0; i < MAX; i++){
-        binding = symtable[i];
-
-	    while(binding) {
-
-            if(binding->value.varVal){
-                if (binding->value.varVal->scope == scope)
-                    binding->isActive = 0;
-            }
-            else if(binding->value.funcVal){
-                if (binding->value.funcVal->scope == scope)
-                    binding->isActive = 0;
-            }
-
-            binding = binding->next;
-	    }
-    }
+	if   (scope_prev) scope_prev->next_in_scope = new;
+	else scope_link[var ? var->scope : func->scope] = new;
 
 	return 1;
 }
 
 
-int symtable_contains(const Variable* var, const Function* func){
+// Hide all entries in a scope
+int hide_scope(const unsigned int scope) {
 
-	unsigned int hash = symtable_hash(get_key(var, func));
-	SymbolTableEntry* binding = symtable[hash];
+	SymbolTableEntry* scope_entry = scope_link[scope];
 
-	while (binding) {
-        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+	while(scope_entry) {
+        scope_entry->isActive = 0;
+        scope_entry = scope_entry->next_in_scope;
+	}
 
-        if(symtable_hash(binding_key) == hash)
-			return 1;
+	return 1;
+}
 
-		binding = binding->next;
+
+// Return true if a bucket contains an entry
+int symtable_contains(const Variable* var, const Function* func, enum SymbolType type){
+
+	unsigned int hash = symtable_hash(var ? var->name : func->name);
+	SymbolTableEntry* table_entry = symtable[hash];
+
+	while(table_entry) {
+        if(var && table_entry->value.varVal){
+            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && type == table_entry->type)
+			    return 1;
+        }
+        else if(func && table_entry->value.funcVal){
+            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && type == table_entry->type)
+			    return 1;
+        }
+
+		table_entry = table_entry->next;
 	}
 
 	return 0;
 }
 
 
-SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func) {
+// Return true if a scope contains an entry
+int scope_contains(const Variable* var, const Function* func, enum SymbolType type){
 
-	unsigned int hash = symtable_hash(get_key(var, func));
-	SymbolTableEntry* binding = symtable[hash];
+	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
 
-	while (binding) {
-        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+	while(scope_entry) {
+        if(var && scope_entry->value.varVal){
+            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && type == scope_entry->type)
+			    return 1;
+        }
+        else if(func && scope_entry->value.funcVal){
+            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && type == scope_entry->type)
+			    return 1;
+        }
 
-        if(symtable_hash(binding_key) == hash)
-			return binding;
+		scope_entry = scope_entry->next_in_scope;
+	}
 
-		binding = binding->next;
+	return 0;
+}
+
+
+// Return an entry from a bucket
+SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func, enum SymbolType type){
+
+	unsigned int hash = symtable_hash(var ? var->name : func->name);
+	SymbolTableEntry* table_entry = symtable[hash];
+
+	while(table_entry) {
+        if(var && table_entry->value.varVal){
+            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && type == table_entry->type)
+			    return table_entry;
+        }
+        else if(func && table_entry->value.funcVal){
+            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && type == table_entry->type)
+			    return table_entry;
+        }
+
+		table_entry = table_entry->next;
+	}
+
+	return null;
+}
+
+
+// Return an entry from a scope
+SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum SymbolType type){
+
+	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
+
+	while(scope_entry) {
+        if(var && scope_entry->value.varVal){
+            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && type == scope_entry->type)
+			    return scope_entry;
+        }
+        else if(func && scope_entry->value.funcVal){
+            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && type == scope_entry->type)
+			    return scope_entry;
+        }
+
+		scope_entry = scope_entry->next_in_scope;
 	}
 
 	return null;

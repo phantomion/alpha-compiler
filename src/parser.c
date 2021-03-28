@@ -69,6 +69,7 @@
 /* First part of user prologue.  */
 #line 1 "parser.y"
 
+
     #include <stdio.h>
     #include <string.h>
 
@@ -110,19 +111,23 @@
         }value;
         enum SymbolType type;
         struct SymbolTableEntry* next;
+        struct SymbolTableEntry* next_in_scope;
     }SymbolTableEntry;
 
     SymbolTableEntry* symtable[MAX];
+    SymbolTableEntry* scope_link[MAX];
 
     char* itoa(int val);
-    char* get_key(const Variable* var, const Function* func);
     unsigned int symtable_hash(const char *pcKey);
     int symtable_insert(Variable* var, Function* func, enum SymbolType type);
-    int symtable_hide(const unsigned int scope);
-    int symtable_contains(const Variable* var, const Function* func);
-    SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func);
+    int hide_scope(const unsigned int scope);
+    int symtable_contains(const Variable* var, const Function* func, enum SymbolType type);
+    int scope_contains(const Variable* var, const Function* func, enum SymbolType type);
+    SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func, enum SymbolType type);
+    SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum SymbolType type);
 
-#line 126 "./src/parser.c"
+
+#line 131 "./src/parser.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -620,17 +625,17 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   149,   149,   151,   152,   153,   154,   155,   156,   157,
-     158,   159,   160,   161,   165,   166,   170,   171,   172,   173,
-     174,   175,   176,   177,   178,   179,   180,   181,   182,   183,
-     184,   185,   189,   190,   191,   192,   193,   194,   195,   196,
-     200,   203,   204,   205,   206,   207,   211,   212,   213,   214,
-     218,   219,   220,   221,   225,   226,   227,   228,   232,   233,
-     237,   240,   240,   243,   244,   248,   249,   253,   254,   258,
-     262,   263,   267,   270,   270,   279,   283,   283,   284,   288,
-     288,   288,   288,   289,   289,   289,   289,   290,   290,   290,
-     290,   294,   294,   294,   294,   294,   294,   297,   297,   298,
-     302,   303,   307,   308,   312,   315,   318,   319,   322,   323
+       0,   154,   154,   156,   157,   158,   159,   160,   161,   162,
+     163,   164,   165,   166,   170,   171,   175,   176,   177,   178,
+     179,   180,   181,   182,   183,   184,   185,   186,   187,   188,
+     189,   190,   194,   195,   196,   197,   198,   199,   200,   201,
+     205,   208,   209,   210,   211,   212,   216,   217,   218,   219,
+     223,   224,   225,   226,   230,   231,   232,   233,   237,   238,
+     242,   245,   245,   248,   249,   253,   254,   258,   259,   263,
+     267,   268,   272,   275,   275,   284,   288,   288,   289,   293,
+     293,   293,   293,   294,   294,   294,   294,   295,   295,   295,
+     295,   299,   299,   299,   299,   299,   299,   302,   302,   303,
+     307,   308,   312,   313,   317,   320,   323,   324,   327,   328
 };
 #endif
 
@@ -1498,49 +1503,49 @@ yyreduce:
   switch (yyn)
     {
   case 31: /* expr: error  */
-#line 185 "parser.y"
+#line 190 "parser.y"
                     {yyclearin;}
-#line 1504 "./src/parser.c"
+#line 1509 "./src/parser.c"
     break;
 
   case 46: /* lvalue: ID  */
-#line 211 "parser.y"
+#line 216 "parser.y"
                {printf("id %s line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1510 "./src/parser.c"
+#line 1515 "./src/parser.c"
     break;
 
   case 47: /* lvalue: LOCAL ID  */
-#line 212 "parser.y"
+#line 217 "parser.y"
                        {printf("Local id %s line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1516 "./src/parser.c"
+#line 1521 "./src/parser.c"
     break;
 
   case 48: /* lvalue: SCOPE ID  */
-#line 213 "parser.y"
+#line 218 "parser.y"
                        {printf("Global id %s line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1522 "./src/parser.c"
+#line 1527 "./src/parser.c"
     break;
 
   case 50: /* member: lvalue POINT ID  */
-#line 218 "parser.y"
+#line 223 "parser.y"
                             {printf("Member id %s at line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1528 "./src/parser.c"
+#line 1533 "./src/parser.c"
     break;
 
   case 61: /* $@1: %empty  */
-#line 240 "parser.y"
+#line 245 "parser.y"
                      {printf("Method call %s at line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1534 "./src/parser.c"
+#line 1539 "./src/parser.c"
     break;
 
   case 73: /* $@2: %empty  */
-#line 270 "parser.y"
+#line 275 "parser.y"
                         {printf("function with id %s line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1540 "./src/parser.c"
+#line 1545 "./src/parser.c"
     break;
 
   case 74: /* funcdef: FUNCTION ID $@2 LPAREN idlist RPAREN block  */
-#line 270 "parser.y"
+#line 275 "parser.y"
                                                                                                             {
        //la8os h apo katw grammh
        /*printf("Function with id: %s\n", $2);*/
@@ -1550,35 +1555,35 @@ yyreduce:
            /*f->line = yylineno;*/
            /*symtable_insert(null, f, USERFUNC);*/
        }
-#line 1554 "./src/parser.c"
+#line 1559 "./src/parser.c"
     break;
 
   case 75: /* funcdef: FUNCTION LPAREN idlist RPAREN block  */
-#line 279 "parser.y"
+#line 284 "parser.y"
                                                   {}
-#line 1560 "./src/parser.c"
+#line 1565 "./src/parser.c"
     break;
 
   case 76: /* $@3: %empty  */
-#line 283 "parser.y"
+#line 288 "parser.y"
                    {scope++;}
-#line 1566 "./src/parser.c"
+#line 1571 "./src/parser.c"
     break;
 
   case 77: /* block: LCURLY $@3 stmt_list RCURLY  */
-#line 283 "parser.y"
-                                               {symtable_hide(scope--);}
-#line 1572 "./src/parser.c"
+#line 288 "parser.y"
+                                               {hide_scope(scope--);}
+#line 1577 "./src/parser.c"
     break;
 
   case 97: /* $@4: %empty  */
-#line 297 "parser.y"
+#line 302 "parser.y"
                {printf("Argument %s at line %d\n", (yyvsp[0].strVal), yylineno);}
-#line 1578 "./src/parser.c"
+#line 1583 "./src/parser.c"
     break;
 
 
-#line 1582 "./src/parser.c"
+#line 1587 "./src/parser.c"
 
       default: break;
     }
@@ -1772,7 +1777,7 @@ yyreturn:
   return yyresult;
 }
 
-#line 327 "parser.y"
+#line 332 "parser.y"
 
 
 int yyerror(char* message) {
@@ -1780,6 +1785,9 @@ int yyerror(char* message) {
     return 1;
 }
 
+
+// Int to String implementation because C
+// IT MAY BE USELESS WE'LL SEE
 char* itoa(int val){
 
 	static char buf[32] = {0};
@@ -1792,23 +1800,7 @@ char* itoa(int val){
 }
 
 
-char* get_key(const Variable* var, const Function* func) {
-
-    char* key = malloc(strlen(var->name) + strlen(itoa(var->scope)));
-
-    if(var){
-        strcpy(key, var->name);
-        strcat(key, itoa(var->scope));
-    }
-    else if(func){
-        strcpy(key, func->name);
-        strcat(key, itoa(func->scope));
-    }
-
-    return key;
-}
-
-
+// Hash Function
 unsigned int symtable_hash(const char *pcKey) {
 
   	size_t ui;
@@ -1821,12 +1813,17 @@ unsigned int symtable_hash(const char *pcKey) {
 }
 
 
+// Insert an entry to the Symbol Table AND the Scope Link
+// !!! Anything can be added except if every field (name, scope, type) is the same, then return error !!!
+// ^^^^ That must be fixed once we understand the rules for definitions and redeclarations
 int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 
-    unsigned int hash = symtable_hash(get_key(var, func));
+    unsigned int hash = symtable_hash(var ? var->name : func->name);
 
-	SymbolTableEntry* binding = symtable[hash];
-	SymbolTableEntry* prev = null;
+	SymbolTableEntry* table_entry = symtable[hash];
+	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
+	SymbolTableEntry* table_prev = null;
+	SymbolTableEntry* scope_prev = null;
 	SymbolTableEntry* new;
 
 	new = malloc(sizeof(SymbolTableEntry));
@@ -1835,88 +1832,154 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
     new->value.funcVal = func;
     new->type = type;
 	new->next = null;
+    new->next_in_scope = null;
 
-	while(binding) {
-        unsigned int binding_hash = symtable_hash(get_key(binding->value.varVal, binding->value.funcVal));
+	while(table_entry) {
 
-        if(binding_hash == hash){
-
-            if(binding->isActive)
-                return 0;
-
-            new->next = binding->next;
-            free(binding->value.varVal);
-            free(binding->value.funcVal);
-            free(binding);
+        if(var && table_entry->value.varVal){
+            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && var->scope == table_entry->value.varVal->scope && type == table_entry->type){
+                free(new);
+			    return 0;
+            }
+        }
+        else if(func && table_entry->value.funcVal){
+            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && func->scope == table_entry->value.funcVal->scope && type == table_entry->type){
+                free(new);
+			    return 0;
+            }
         }
 
-		prev = binding;
-		binding = binding->next;
+		table_prev = table_entry;
+		table_entry = table_entry->next;
 	}
 
-	if (prev) prev->next = new;
+	while(scope_entry) {
+
+        if(var && scope_entry->value.varVal){
+            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && var->scope == scope_entry->value.varVal->scope && type == scope_entry->type){
+                free(new);
+			    return 0;
+            }
+        }
+        else if(func && scope_entry->value.funcVal){
+            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && func->scope == scope_entry->value.funcVal->scope && type == scope_entry->type){
+                free(new);
+			    return 0;
+            }
+        }
+
+		scope_prev = scope_entry;
+		scope_entry = scope_entry->next_in_scope;
+	}
+
+	if   (table_prev) table_prev->next = new;
 	else symtable[hash] = new;
 
-	return 1;
-}
-
-
-int symtable_hide(const unsigned int scope) {
-
-    SymbolTableEntry* binding;
-
-    for(short int i = 0; i < MAX; i++){
-        binding = symtable[i];
-
-	    while(binding) {
-
-            if(binding->value.varVal){
-                if (binding->value.varVal->scope == scope)
-                    binding->isActive = 0;
-            }
-            else if(binding->value.funcVal){
-                if (binding->value.funcVal->scope == scope)
-                    binding->isActive = 0;
-            }
-
-            binding = binding->next;
-	    }
-    }
+	if   (scope_prev) scope_prev->next_in_scope = new;
+	else scope_link[var ? var->scope : func->scope] = new;
 
 	return 1;
 }
 
 
-int symtable_contains(const Variable* var, const Function* func){
+// Hide all entries in a scope
+int hide_scope(const unsigned int scope) {
 
-	unsigned int hash = symtable_hash(get_key(var, func));
-	SymbolTableEntry* binding = symtable[hash];
+	SymbolTableEntry* scope_entry = scope_link[scope];
 
-	while (binding) {
-        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+	while(scope_entry) {
+        scope_entry->isActive = 0;
+        scope_entry = scope_entry->next_in_scope;
+	}
 
-        if(symtable_hash(binding_key) == hash)
-			return 1;
+	return 1;
+}
 
-		binding = binding->next;
+
+// Return true if a bucket contains an entry
+int symtable_contains(const Variable* var, const Function* func, enum SymbolType type){
+
+	unsigned int hash = symtable_hash(var ? var->name : func->name);
+	SymbolTableEntry* table_entry = symtable[hash];
+
+	while(table_entry) {
+        if(var && table_entry->value.varVal){
+            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && type == table_entry->type)
+			    return 1;
+        }
+        else if(func && table_entry->value.funcVal){
+            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && type == table_entry->type)
+			    return 1;
+        }
+
+		table_entry = table_entry->next;
 	}
 
 	return 0;
 }
 
 
-SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func) {
+// Return true if a scope contains an entry
+int scope_contains(const Variable* var, const Function* func, enum SymbolType type){
 
-	unsigned int hash = symtable_hash(get_key(var, func));
-	SymbolTableEntry* binding = symtable[hash];
+	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
 
-	while (binding) {
-        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+	while(scope_entry) {
+        if(var && scope_entry->value.varVal){
+            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && type == scope_entry->type)
+			    return 1;
+        }
+        else if(func && scope_entry->value.funcVal){
+            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && type == scope_entry->type)
+			    return 1;
+        }
 
-        if(symtable_hash(binding_key) == hash)
-			return binding;
+		scope_entry = scope_entry->next_in_scope;
+	}
 
-		binding = binding->next;
+	return 0;
+}
+
+
+// Return an entry from a bucket
+SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func, enum SymbolType type){
+
+	unsigned int hash = symtable_hash(var ? var->name : func->name);
+	SymbolTableEntry* table_entry = symtable[hash];
+
+	while(table_entry) {
+        if(var && table_entry->value.varVal){
+            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && type == table_entry->type)
+			    return table_entry;
+        }
+        else if(func && table_entry->value.funcVal){
+            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && type == table_entry->type)
+			    return table_entry;
+        }
+
+		table_entry = table_entry->next;
+	}
+
+	return null;
+}
+
+
+// Return an entry from a scope
+SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum SymbolType type){
+
+	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
+
+	while(scope_entry) {
+        if(var && scope_entry->value.varVal){
+            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && type == scope_entry->type)
+			    return scope_entry;
+        }
+        else if(func && scope_entry->value.funcVal){
+            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && type == scope_entry->type)
+			    return scope_entry;
+        }
+
+		scope_entry = scope_entry->next_in_scope;
 	}
 
 	return null;
