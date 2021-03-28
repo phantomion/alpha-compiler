@@ -2,3 +2,4 @@ src/analyzer
 input
 tests/
 src/parser.output
+bin/
