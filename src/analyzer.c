@@ -603,13 +603,10 @@ char *yytext;
 #line 2 "analyzer.l"
     #include "parser.h"
 
-    int tokenno = 1;
+#line 606 "./src/analyzer.c"
+#define YY_NO_INPUT 1
 
-    #define YY_DECL int alpha_yylex()
-
-#line 610 "./src/analyzer.c"
-
-#line 612 "./src/analyzer.c"
+#line 609 "./src/analyzer.c"
 
 #define INITIAL 0
 #define STR 1
@@ -671,8 +668,6 @@ extern int yywrap ( void );
 #endif
 
 #ifndef YY_NO_UNPUT
-    
-    static void yyunput ( int c, char *buf_ptr  );
     
 #endif
 
@@ -828,20 +823,17 @@ YY_DECL
 		}
 
 	{
-#line 86 "analyzer.l"
+#line 84 "analyzer.l"
 
 
 
-#line 90 "analyzer.l"
+#line 88 "analyzer.l"
     char string_buf[1024];
     char *string_buf_ptr;
-    int comment_nesting = 0;
     int tmp_nest = 0;
-    int start_line = -1;
-    int end_line = -1;
 
 
-#line 844 "./src/analyzer.c"
+#line 836 "./src/analyzer.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -910,12 +902,12 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 98 "analyzer.l"
+#line 93 "analyzer.l"
 string_buf_ptr = string_buf; BEGIN(STR);
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 100 "analyzer.l"
+#line 95 "analyzer.l"
 { /* saw closing quote - all done */
     BEGIN(INITIAL);
     *string_buf_ptr = '\0';
@@ -926,7 +918,7 @@ YY_RULE_SETUP
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 107 "analyzer.l"
+#line 102 "analyzer.l"
 {
     BEGIN(INITIAL);
     fprintf(yyout, "Unterminated string constant at line %d.\n", yylineno - 1);
@@ -934,38 +926,38 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 112 "analyzer.l"
+#line 107 "analyzer.l"
 *string_buf_ptr++ = '\n';
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 113 "analyzer.l"
+#line 108 "analyzer.l"
 *string_buf_ptr++ = '\t';
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 114 "analyzer.l"
+#line 109 "analyzer.l"
 *string_buf_ptr++ = '\r';
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 115 "analyzer.l"
+#line 110 "analyzer.l"
 *string_buf_ptr++ = '\b';
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 116 "analyzer.l"
+#line 111 "analyzer.l"
 *string_buf_ptr++ = '\f';
 	YY_BREAK
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 117 "analyzer.l"
+#line 112 "analyzer.l"
 *string_buf_ptr++ = yytext[1];
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 119 "analyzer.l"
+#line 114 "analyzer.l"
 {
     char *yptr = yytext;
 
@@ -975,318 +967,317 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 126 "analyzer.l"
+#line 121 "analyzer.l"
 {
     yylval.doubleVal = atof(yytext);
-    yylval.lineno = yylineno;
     return REAL;
 }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 132 "analyzer.l"
+#line 126 "analyzer.l"
 {
     yylval.intVal = atoi(yytext);
-    yylval.lineno = yylineno;
     return NUMBER;
 }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 138 "analyzer.l"
+#line 131 "analyzer.l"
 {return IF;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 139 "analyzer.l"
+#line 132 "analyzer.l"
 {return ELSE;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 140 "analyzer.l"
+#line 133 "analyzer.l"
 {return FOR;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 141 "analyzer.l"
+#line 134 "analyzer.l"
 {return WHILE;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 142 "analyzer.l"
+#line 135 "analyzer.l"
 {return BREAK;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 143 "analyzer.l"
+#line 136 "analyzer.l"
 {return CONTINUE;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 144 "analyzer.l"
+#line 137 "analyzer.l"
 {return FUNCTION;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 145 "analyzer.l"
+#line 138 "analyzer.l"
 {return RETURN;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 146 "analyzer.l"
+#line 139 "analyzer.l"
 {return LOCAL;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 147 "analyzer.l"
+#line 140 "analyzer.l"
 {return AND;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 148 "analyzer.l"
+#line 141 "analyzer.l"
 {return OR;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 149 "analyzer.l"
+#line 142 "analyzer.l"
 {return NOT;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 150 "analyzer.l"
+#line 143 "analyzer.l"
 {return TRUE;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 151 "analyzer.l"
+#line 144 "analyzer.l"
 {return FALSE;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 152 "analyzer.l"
+#line 145 "analyzer.l"
 {return NIL;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 154 "analyzer.l"
+#line 147 "analyzer.l"
 {return ASSIGN;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 155 "analyzer.l"
+#line 148 "analyzer.l"
 {return ADD;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 156 "analyzer.l"
+#line 149 "analyzer.l"
 {return SUB;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 157 "analyzer.l"
+#line 150 "analyzer.l"
 {return INC;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 158 "analyzer.l"
+#line 151 "analyzer.l"
 {return DEC;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 159 "analyzer.l"
+#line 152 "analyzer.l"
 {return MUL;}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 160 "analyzer.l"
+#line 153 "analyzer.l"
 {return LE;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 161 "analyzer.l"
+#line 154 "analyzer.l"
 {return DIV;}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 162 "analyzer.l"
+#line 155 "analyzer.l"
 {return MOD;}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 163 "analyzer.l"
+#line 156 "analyzer.l"
 {return EQUAL;}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 164 "analyzer.l"
+#line 157 "analyzer.l"
 {return NEQ;}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 165 "analyzer.l"
+#line 158 "analyzer.l"
 {return GT;}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 166 "analyzer.l"
+#line 159 "analyzer.l"
 {return LT;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 167 "analyzer.l"
+#line 160 "analyzer.l"
 {return GE;}
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 169 "analyzer.l"
+#line 162 "analyzer.l"
 {return LCURLY;}
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 170 "analyzer.l"
+#line 163 "analyzer.l"
 {return RCURLY;}
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 171 "analyzer.l"
+#line 164 "analyzer.l"
 {return LBRACKET;}
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 172 "analyzer.l"
+#line 165 "analyzer.l"
 {return RBRACKET;}
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 173 "analyzer.l"
+#line 166 "analyzer.l"
 {return LPAREN;}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 174 "analyzer.l"
+#line 167 "analyzer.l"
 {return RPAREN;}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 175 "analyzer.l"
+#line 168 "analyzer.l"
 {return SEMICOLON;}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 176 "analyzer.l"
+#line 169 "analyzer.l"
 {return COLON;}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 177 "analyzer.l"
+#line 170 "analyzer.l"
 {return SCOPE;}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 178 "analyzer.l"
+#line 171 "analyzer.l"
 {return POINT;}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 179 "analyzer.l"
+#line 172 "analyzer.l"
 {return RANGE;}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 180 "analyzer.l"
+#line 173 "analyzer.l"
 {return COMMA;}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 181 "analyzer.l"
+#line 174 "analyzer.l"
 {return PRINT;}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 182 "analyzer.l"
+#line 175 "analyzer.l"
 {return INPUT;}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 183 "analyzer.l"
+#line 176 "analyzer.l"
 {return OBJECTMEMBERKEYS;}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 184 "analyzer.l"
+#line 177 "analyzer.l"
 {return OBJECTTOTALMEMBERS;}
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 185 "analyzer.l"
+#line 178 "analyzer.l"
 {return OBJECTCOPY;}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 186 "analyzer.l"
+#line 179 "analyzer.l"
 {return TOTALARGUMENTS;}
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 187 "analyzer.l"
+#line 180 "analyzer.l"
 {return ARGUMENT;}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 188 "analyzer.l"
+#line 181 "analyzer.l"
 {return TYPEOF;}
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 189 "analyzer.l"
+#line 182 "analyzer.l"
 {return STRTONUM;}
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 190 "analyzer.l"
+#line 183 "analyzer.l"
 {return SQRT;}
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 191 "analyzer.l"
+#line 184 "analyzer.l"
 {return COS;}
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 192 "analyzer.l"
+#line 185 "analyzer.l"
 {return SIN;}
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 194 "analyzer.l"
-{return ID;}
+#line 187 "analyzer.l"
+{yylval.strVal = yytext; return ID;}
 	YY_BREAK
 case 67:
 *yy_cp = (yy_hold_char); /* undo effects of setting up yytext */
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 196 "analyzer.l"
+#line 189 "analyzer.l"
 {return COMMENT;}
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 198 "analyzer.l"
-start_line = yylineno; end_line = yylineno; BEGIN(IN_COMMENT);
+#line 191 "analyzer.l"
+BEGIN(IN_COMMENT);
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 200 "analyzer.l"
+#line 193 "analyzer.l"
 {
     if (tmp_nest > 0) tmp_nest--;
     else {
         BEGIN(INITIAL);
+        return MUL_COMMENT;
     }
 }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 207 "analyzer.l"
+#line 201 "analyzer.l"
 {
     tmp_nest++;
 }
@@ -1294,35 +1285,35 @@ YY_RULE_SETUP
 case 71:
 /* rule 71 can match eol */
 YY_RULE_SETUP
-#line 211 "analyzer.l"
-end_line++;
+#line 205 "analyzer.l"
+{}
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 212 "analyzer.l"
+#line 206 "analyzer.l"
 {}
 	YY_BREAK
 case YY_STATE_EOF(IN_COMMENT):
-#line 213 "analyzer.l"
+#line 207 "analyzer.l"
 { BEGIN(INITIAL); fprintf(yyout, "Open multiline comment at EOF\n"); }
 	YY_BREAK
 case 73:
 /* rule 73 can match eol */
 YY_RULE_SETUP
-#line 215 "analyzer.l"
+#line 209 "analyzer.l"
 {}
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 216 "analyzer.l"
+#line 210 "analyzer.l"
 { fprintf(yyout, "Unknown identifier %s at line %d\n", yytext, yylineno); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 219 "analyzer.l"
+#line 213 "analyzer.l"
 ECHO;
 	YY_BREAK
-#line 1325 "./src/analyzer.c"
+#line 1316 "./src/analyzer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STR):
 	yyterminate();
@@ -1658,47 +1649,6 @@ static int yy_get_next_buffer (void)
 }
 
 #ifndef YY_NO_UNPUT
-
-    static void yyunput (int c, char * yy_bp )
-{
-	char *yy_cp;
-    
-    yy_cp = (yy_c_buf_p);
-
-	/* undo effects of setting up yytext */
-	*yy_cp = (yy_hold_char);
-
-	if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
-		{ /* need to shift things up to make room */
-		/* +2 for EOB chars. */
-		int number_to_move = (yy_n_chars) + 2;
-		char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
-					YY_CURRENT_BUFFER_LVALUE->yy_buf_size + 2];
-		char *source =
-				&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move];
-
-		while ( source > YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
-			*--dest = *--source;
-
-		yy_cp += (int) (dest - source);
-		yy_bp += (int) (dest - source);
-		YY_CURRENT_BUFFER_LVALUE->yy_n_chars =
-			(yy_n_chars) = (int) YY_CURRENT_BUFFER_LVALUE->yy_buf_size;
-
-		if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
-			YY_FATAL_ERROR( "flex scanner push-back overflow" );
-		}
-
-	*--yy_cp = (char) c;
-
-    if ( c == '\n' ){
-        --yylineno;
-    }
-
-	(yytext_ptr) = yy_bp;
-	(yy_hold_char) = *yy_cp;
-	(yy_c_buf_p) = yy_cp;
-}
 
 #endif
 
@@ -2340,7 +2290,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 219 "analyzer.l"
+#line 213 "analyzer.l"
 
 
 int main(int argc, char** argv) {

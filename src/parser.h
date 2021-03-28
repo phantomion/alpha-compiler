@@ -72,44 +72,47 @@ extern int yydebug;
     NOT = 273,                     /* NOT  */
     NUMBER = 274,                  /* NUMBER  */
     STRING = 275,                  /* STRING  */
-    ASSIGN = 276,                  /* ASSIGN  */
-    ADD = 277,                     /* ADD  */
-    INC = 278,                     /* INC  */
-    SUB = 279,                     /* SUB  */
-    DEC = 280,                     /* DEC  */
-    MUL = 281,                     /* MUL  */
-    DIV = 282,                     /* DIV  */
-    MOD = 283,                     /* MOD  */
-    EQUAL = 284,                   /* EQUAL  */
-    NEQ = 285,                     /* NEQ  */
-    GT = 286,                      /* GT  */
-    LT = 287,                      /* LT  */
-    GE = 288,                      /* GE  */
-    LE = 289,                      /* LE  */
-    LCURLY = 290,                  /* LCURLY  */
-    RCURLY = 291,                  /* RCURLY  */
-    LBRACKET = 292,                /* LBRACKET  */
-    RBRACKET = 293,                /* RBRACKET  */
-    LPAREN = 294,                  /* LPAREN  */
-    RPAREN = 295,                  /* RPAREN  */
-    SEMICOLON = 296,               /* SEMICOLON  */
-    COMMA = 297,                   /* COMMA  */
-    COLON = 298,                   /* COLON  */
-    SCOPE = 299,                   /* SCOPE  */
-    POINT = 300,                   /* POINT  */
-    RANGE = 301,                   /* RANGE  */
-    PRINT = 302,                   /* PRINT  */
-    INPUT = 303,                   /* INPUT  */
-    OBJECTMEMBERKEYS = 304,        /* OBJECTMEMBERKEYS  */
-    OBJECTTOTALMEMBERS = 305,      /* OBJECTTOTALMEMBERS  */
-    OBJECTCOPY = 306,              /* OBJECTCOPY  */
-    TOTALARGUMENTS = 307,          /* TOTALARGUMENTS  */
-    ARGUMENT = 308,                /* ARGUMENT  */
-    TYPEOF = 309,                  /* TYPEOF  */
-    STRTONUM = 310,                /* STRTONUM  */
-    SQRT = 311,                    /* SQRT  */
-    COS = 312,                     /* COS  */
-    SIN = 313                      /* SIN  */
+    REAL = 276,                    /* REAL  */
+    ASSIGN = 277,                  /* ASSIGN  */
+    COMMENT = 278,                 /* COMMENT  */
+    ADD = 279,                     /* ADD  */
+    INC = 280,                     /* INC  */
+    SUB = 281,                     /* SUB  */
+    DEC = 282,                     /* DEC  */
+    MUL = 283,                     /* MUL  */
+    DIV = 284,                     /* DIV  */
+    MOD = 285,                     /* MOD  */
+    EQUAL = 286,                   /* EQUAL  */
+    NEQ = 287,                     /* NEQ  */
+    GT = 288,                      /* GT  */
+    LT = 289,                      /* LT  */
+    GE = 290,                      /* GE  */
+    LE = 291,                      /* LE  */
+    LCURLY = 292,                  /* LCURLY  */
+    RCURLY = 293,                  /* RCURLY  */
+    LBRACKET = 294,                /* LBRACKET  */
+    RBRACKET = 295,                /* RBRACKET  */
+    LPAREN = 296,                  /* LPAREN  */
+    RPAREN = 297,                  /* RPAREN  */
+    SEMICOLON = 298,               /* SEMICOLON  */
+    COMMA = 299,                   /* COMMA  */
+    COLON = 300,                   /* COLON  */
+    SCOPE = 301,                   /* SCOPE  */
+    POINT = 302,                   /* POINT  */
+    RANGE = 303,                   /* RANGE  */
+    PRINT = 304,                   /* PRINT  */
+    INPUT = 305,                   /* INPUT  */
+    OBJECTMEMBERKEYS = 306,        /* OBJECTMEMBERKEYS  */
+    OBJECTTOTALMEMBERS = 307,      /* OBJECTTOTALMEMBERS  */
+    OBJECTCOPY = 308,              /* OBJECTCOPY  */
+    TOTALARGUMENTS = 309,          /* TOTALARGUMENTS  */
+    ARGUMENT = 310,                /* ARGUMENT  */
+    TYPEOF = 311,                  /* TYPEOF  */
+    STRTONUM = 312,                /* STRTONUM  */
+    SQRT = 313,                    /* SQRT  */
+    COS = 314,                     /* COS  */
+    SIN = 315,                     /* SIN  */
+    MUL_COMMENT = 316              /* MUL_COMMENT  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -118,15 +121,14 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 65 "parser.y"
+#line 59 "parser.y"
 
     int intVal;
     char* strVal;
     double doubleVal;
-    SymbolTableEntry* exprNode;
-    int lineno;
+    struct SymbolTableEntry* exprNode;
 
-#line 130 "./src/parser.h"
+#line 132 "./src/parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

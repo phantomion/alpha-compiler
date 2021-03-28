@@ -12,10 +12,10 @@ INCLUDE := -Isrc/
 SRC := $(wildcard src/*.c)
 OBJS := $(SRC:%.c=$(OBJ_DIR)/%.o)
 
-all: directories $(TARGET)
+all: parsers directories $(TARGET)
 
 parsers:
-	lex analyzer.l
+	flex analyzer.l
 	bison parser.y
 
 $(OBJ_DIR)/%.o: %.c
@@ -35,4 +35,4 @@ clean:
 	rm -rf $(BUILD)
 
 run:
-	$(BUILD)/$(TARGET)
+	$(BUILD)/$(TARGET) $(ARGS)

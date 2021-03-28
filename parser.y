@@ -1,20 +1,18 @@
 %{
-
     #include <stdio.h>
     #include <string.h>
 
-
     int yyerror(char* message);
-    int alpha_yylex();
-
+    int yylex();
+    int scope = 0;
 
     extern int yylineno;
     extern char* yytext;
     extern FILE* yyin;
+    extern FILE* yyout;
     #define MAX 509
     #define HASH_MULTIPLIER 65599
     #define null NULL
-
 
     typedef struct Variable {
         const char* name;
@@ -22,23 +20,19 @@
         unsigned int line;
     }Variable;
 
-
     typedef struct Function {
         const char* name;
-        const char** args;
+        const char* args;
         unsigned int scope;
         unsigned int line;
     }Function;
 
-
     enum SymbolType {
-        GLOBAL, LOCAL, FORMAL,
+        GLOBAL, LOCALVAR, FORMAL,
         USERFUNC, LIBFUNC
     };
 
-
     typedef struct SymbolTableEntry {
-        const char* key;
         short int isActive;
         union {
             Variable* varVal;
@@ -48,15 +42,15 @@
         struct SymbolTableEntry* next;
     }SymbolTableEntry;
 
-
     SymbolTableEntry* symtable[MAX];
 
-
-    unsigned int symTableHash(const char* key);
-    int ins(const char *key, const void *pvValue);
-    void* lookup(const char *key);
-    void hide(const char* key);
-
+    char* itoa(int val);
+    char* get_key(const Variable* var, const Function* func);
+    unsigned int symtable_hash(const char *pcKey);
+    int symtable_insert(Variable* var, Function* func, enum SymbolType type);
+    int symtable_hide(const unsigned int scope);
+    int symtable_contains(const Variable* var, const Function* func);
+    SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func);
 %}
 
 
@@ -66,14 +60,14 @@
     int intVal;
     char* strVal;
     double doubleVal;
-    SymbolTableEntry* exprNode;
-    int lineno;
+    struct SymbolTableEntry* exprNode;
 }
 
+%expect 2
 
 %start program
 
-%token ID
+%token <strVal> ID
 %token TRUE
 %token FALSE
 %token NIL
@@ -89,10 +83,12 @@
 %token AND
 %token OR
 %token NOT
-%token NUMBER
-%token STRING
+%token <intVal> NUMBER
+%token <strVal> STRING
+%token <doubleVal> REAL
 
 %token ASSIGN
+%token COMMENT
 %token ADD
 %token INC
 %token SUB
@@ -131,6 +127,7 @@
 %token SQRT
 %token COS
 %token SIN
+%token MUL_COMMENT
 
 %right ASSIGN
 %right NOT INC DEC
@@ -142,10 +139,9 @@
 %left POINT RANGE
 %left LBRACKET RBRACKET
 %left LPAREN RPAREN
+%left LCURLY RCURLY
 %nonassoc EQUAL NEQ
 %nonassoc GT GE LT LE
-%precedence RCURLY
-
 
 %%
 
@@ -162,6 +158,7 @@ stmt:       expr SEMICOLON
             | block
             | funcdef
             | SEMICOLON
+            | comment
             ;
 
 
@@ -171,22 +168,32 @@ stmt_list:  stmt stmt_list
 
 
 expr:       assignexpr
-            | expr op expr
+            | expr ADD expr
+            | expr SUB expr
+            | expr MUL expr
+            | expr DIV expr
+            | expr MOD expr
+            | expr GT expr
+            | expr GE expr
+            | expr LT expr
+            | expr LE expr
+            | expr EQUAL expr
+            | expr NEQ expr
+            | expr AND expr
+            | expr OR expr
             | term
+            | error {yyclearin;}
             ;
 
 
-op:         ADD | SUB | MUL | DIV | MOD | GT | GE | LT | LE | EQUAL | NEQ | AND | OR;
-
-
-term:       RPAREN expr LPAREN
+term:       LPAREN expr RPAREN
+            | primary
             | SUB expr
             | NOT expr
             | INC lvalue
             | lvalue INC
             | DEC lvalue
             | lvalue DEC
-            | primary
             ;
 
 
@@ -196,28 +203,29 @@ assignexpr: lvalue ASSIGN expr;
 primary:    lvalue
             | call
             | objectdef
-            | RPAREN funcdef LPAREN
+            | LPAREN funcdef RPAREN
             | const
             ;
 
 
-lvalue:     ID
-            | LOCAL ID
-            | SCOPE ID
+lvalue:     ID {printf("id %s line %d\n", $1, yylineno);}
+            | LOCAL ID {printf("Local id %s line %d\n", $2, yylineno);}
+            | SCOPE ID {printf("Global id %s line %d\n", $2, yylineno);}
             | member
             ;
 
 
-member:     lvalue POINT ID
+member:     lvalue POINT ID {printf("Member id %s at line %d\n", $3, yylineno);}
             | lvalue LBRACKET expr RBRACKET
             | call POINT ID
             | call LBRACKET expr RBRACKET
             ;
 
 
-call:       call LPAREN elist RPAREN
+call:       call normcall
             | lvalue callsuffix
             | LPAREN funcdef RPAREN LPAREN elist RPAREN
+            | libraryfuncs LPAREN elist RPAREN
             ;
 
 
@@ -229,11 +237,11 @@ callsuffix: normcall
 normcall:   LPAREN elist RPAREN;
 
 
-methodcall: RANGE ID LPAREN elist RPAREN;
+methodcall: RANGE ID {printf("Method call %s at line %d\n", $2, yylineno);} LPAREN elist RPAREN;
 
 
-elist:      expr
-            | expr commaexpr
+elist:      expr commaexpr
+            |
             ;
 
 
@@ -247,8 +255,7 @@ objectdef:  LBRACKET elist RBRACKET
             ;
 
 
-indexed:    indexelem
-            | indexelem indexelemlist
+indexed:    indexelem indexelemlist
             ;
 
 
@@ -260,13 +267,20 @@ indexelemlist:  COMMA indexelem indexelemlist
 indexelem:  LCURLY expr COLON expr RCURLY;
 
 
-funcdef:    FUNCTION ID LPAREN idlist RPAREN block
-            |FUNCTION LPAREN idlist RPAREN block
-            | FUNCTION libraryfuncs LPAREN idlist RPAREN block
+funcdef:    FUNCTION ID {printf("function with id %s line %d\n", $2, yylineno);} LPAREN idlist RPAREN block {
+       //la8os h apo katw grammh
+       /*printf("Function with id: %s\n", $2);*/
+           /*Function* f = malloc(sizeof(struct Function));*/
+           /*f->name = $2;*/
+           /*f->scope = scope;*/
+           /*f->line = yylineno;*/
+           /*symtable_insert(null, f, USERFUNC);*/
+       }
+            | FUNCTION LPAREN idlist RPAREN block {}
             ;
 
 
-block:      LCURLY stmt_list RCURLY
+block:      LCURLY {scope++;} stmt_list RCURLY {symtable_hide(scope--);}
             | LCURLY RCURLY
             ;
 
@@ -277,16 +291,15 @@ libraryfuncs:   PRINT | INPUT | OBJECTMEMBERKEYS | OBJECTTOTALMEMBERS
                 ;
 
 
-const:      NUMBER | STRING | NIL | TRUE | FALSE;
+const:      NUMBER | STRING | NIL | TRUE | FALSE | REAL;
 
 
-idlist:     ID
-            | ID commaidlist
+idlist:     ID {printf("Argument %s at line %d\n", $1, yylineno);} commaidlist
             |
             ;
 
 
-commaidlist:COMMA ID commaidlist
+commaidlist: COMMA ID commaidlist
             |
             ;
 
@@ -302,18 +315,29 @@ whilestmt:  WHILE LPAREN expr RPAREN stmt;
 forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN stmt;
 
 
-returnstmt: RETURN LBRACKET expr RBRACKET SEMICOLON;
+returnstmt: RETURN expr SEMICOLON
+          | RETURN SEMICOLON
+          ;
+
+comment: COMMENT
+       | MUL_COMMENT
+       ;
 
 
 %%
 
-char* itoa(int val, int base){
+int yyerror(char* message) {
+    fprintf(yyout, "%s at line %d\n", message, yylineno);
+    return 1;
+}
+
+char* itoa(int val){
 
 	static char buf[32] = {0};
 	int i = 30;
 
-	for(; val && i; --i, val /= base)
-		buf[i] = "0123456789abcdef"[val % base];
+	for(; val && i; --i, val /= 10)
+		buf[i] = "0123456789abcdef"[val % 10];
 
 	return &buf[i+1];
 }
@@ -321,15 +345,15 @@ char* itoa(int val, int base){
 
 char* get_key(const Variable* var, const Function* func) {
 
-    char* key;
+    char* key = malloc(strlen(var->name) + strlen(itoa(var->scope)));
 
     if(var){
         strcpy(key, var->name);
-        strcat(key, itoa(var->scope, 10));
+        strcat(key, itoa(var->scope));
     }
     else if(func){
         strcpy(key, func->name);
-        strcat(key, itoa(func->scope, 10));
+        strcat(key, itoa(func->scope));
     }
 
     return key;
@@ -370,7 +394,10 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 
             if(binding->isActive)
                 return 0;
+
             new->next = binding->next;
+            free(binding->value.varVal);
+            free(binding->value.funcVal);
             free(binding);
         }
 
@@ -385,23 +412,29 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 }
 
 
-int symtable_hide(const Variable* var, const Function* func) {
+int symtable_hide(const unsigned int scope) {
 
-    int hash = symtable_hash(get_key(var, func));
-	SymbolTableEntry* binding = symtable[hash];
+    SymbolTableEntry* binding;
 
-	while(binding) {
-        char* binding_key = get_key(binding->value.varVal, binding->value.funcVal);
+    for(short int i = 0; i < MAX; i++){
+        binding = symtable[i];
 
-        if(symtable_hash(binding_key) == hash){
-			binding->isActive = 0;
-			return 1;
-		}
+	    while(binding) {
 
-        binding = binding->next;
-	}
+            if(binding->value.varVal){
+                if (binding->value.varVal->scope == scope)
+                    binding->isActive = 0;
+            }
+            else if(binding->value.funcVal){
+                if (binding->value.funcVal->scope == scope)
+                    binding->isActive = 0;
+            }
 
-	return 0;
+            binding = binding->next;
+	    }
+    }
+
+	return 1;
 }
 
 

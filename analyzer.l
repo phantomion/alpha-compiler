@@ -1,8 +1,6 @@
 %{
     #include "parser.h"
 
-    #define YY_DECL int alpha_yylex()
-
 %}
 
 %option header-file="./src/analyzer.h"
@@ -10,6 +8,8 @@
 
 %option yylineno
 %option noyywrap
+%option nounput
+%option noinput
 
 DELIM       [ \t\n]
 WS          {DELIM}+
@@ -86,10 +86,7 @@ COMMENT     \/\/.*$
 
     char string_buf[1024];
     char *string_buf_ptr;
-    int comment_nesting = 0;
     int tmp_nest = 0;
-    int start_line = -1;
-    int end_line = -1;
 
 
 \"      string_buf_ptr = string_buf; BEGIN(STR);
@@ -122,13 +119,11 @@ COMMENT     \/\/.*$
 
 {REAL}          {
     yylval.doubleVal = atof(yytext);
-    yylval.lineno = yylineno;
     return REAL;
 }
 
 {NUMBER}       {
     yylval.intVal = atoi(yytext);
-    yylval.lineno = yylineno;
     return NUMBER;
 }
 
@@ -188,16 +183,17 @@ COMMENT     \/\/.*$
 {COS}           {return COS;}
 {SIN}           {return SIN;}
 
-{ID}            {return ID;}
+{ID}            {yylval.strVal = yytext; return ID;}
 
 {COMMENT}       {return COMMENT;}
 
-"/*"    start_line = yylineno; end_line = yylineno; BEGIN(IN_COMMENT);
+"/*"    BEGIN(IN_COMMENT);
 
 <IN_COMMENT>"*/" {
     if (tmp_nest > 0) tmp_nest--;
     else {
         BEGIN(INITIAL);
+        return MUL_COMMENT;
     }
 }
 
@@ -205,7 +201,7 @@ COMMENT     \/\/.*$
     tmp_nest++;
 }
 
-<IN_COMMENT>\n      end_line++;
+<IN_COMMENT>\n      {}
 <IN_COMMENT>.       {}
 <IN_COMMENT><<EOF>> { BEGIN(INITIAL); fprintf(yyout, "Open multiline comment at EOF\n"); }
 

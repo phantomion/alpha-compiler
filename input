@@ -1,26 +1,22 @@
-function f3(num) {
-    return num+5
-}
-
-local num = 2;
-if num >= 2 {
-    num++;
-    while num == 3 {
-        num--;
-        break;
+x = 2;
+function foo() {
+    function foo(bar) {
+        local foo = 2;
+        return bar + foo;
     }
+    mhtsos = 2 + 5 * 3;
+    {
+        local foo = [{foo: [{foo:foo}]}];
+        foo.foo..foo(::foo);
+    }
+    x = (function() {});
 }
-32.5
-local str = "enas\nmala\"kas"
-local mhtsos = 3
-/* aksjdlaksjdalskdjaslkdjasld
-   ********
-   /* ajsdalsjdasldjas */
- // ajsdklasjdlkasjdals */
-// o malakas o mhtsos
-local another_str = "enas\t takhs"
-local realguys = -3.14
-local den_kleinei = "dn kleinei h malakia
-/*ajsdlajsldkjaslkdjaslkdjaskldas
-  ajsldjasldjaslkdjaslkdjas
-  ajsdklajsldkjaslkda..&**asd//
+lel = print();
+lul = "Illegal escape char(\\m) \m";
+lul = "Illegal escape char\n \\n";
+lala = mhtsos(asjdk);
+
+// this is a comment
+/* multi
+   line
+   comment
