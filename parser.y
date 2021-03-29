@@ -2,10 +2,13 @@
 
     #include <stdio.h>
     #include <string.h>
+    #include <stdlib.h>
 
     int yyerror(char* message);
     int yylex();
     int scope = 0;
+    int funcdef_counter = 0;
+    int anonymous_functions = 0;
 
     extern int yylineno;
     extern char* yytext;
@@ -15,46 +18,52 @@
     #define HASH_MULTIPLIER 65599
     #define null NULL
 
+    char* libfuncs[] = { "print", "input", "objectmemberkeys", "objecttotalmembers",
+    "objectcopy", "totalarguments", "argument", "typeof", "strtonum", "sqrt",
+    "cos", "sin"};
+
     typedef struct Variable {
-        const char* name;
+        char* name;
         unsigned int scope;
         unsigned int line;
     }Variable;
 
     typedef struct Function {
-        const char* name;
-        const char* args;
+        char* name;
+        char* args;
         unsigned int scope;
         unsigned int line;
     }Function;
 
     enum SymbolType {
-        GLOBAL, LOCALVAR, FORMAL,
+        GLOBAL, LOCALVAR, VAR, FORMAL,
         USERFUNC, LIBFUNC
     };
 
     typedef struct SymbolTableEntry {
         short int isActive;
-        union {
-            Variable* varVal;
-            Function* funcVal;
-        }value;
+        Variable* varVal;
+        Function* funcVal;
         enum SymbolType type;
         struct SymbolTableEntry* next;
         struct SymbolTableEntry* next_in_scope;
     }SymbolTableEntry;
 
+    Function* last_function;
     SymbolTableEntry* symtable[MAX];
     SymbolTableEntry* scope_link[MAX];
 
     char* itoa(int val);
     unsigned int symtable_hash(const char *pcKey);
     int symtable_insert(Variable* var, Function* func, enum SymbolType type);
+    int check_for_libfunc(const char* name);
     int hide_scope(const unsigned int scope);
     int symtable_contains(const Variable* var, const Function* func, enum SymbolType type);
-    int scope_contains(const Variable* var, const Function* func, enum SymbolType type);
-    SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func, enum SymbolType type);
+    int scope_contains(const char* name, const unsigned int scope);
+    int symtable_lookup(const char* name, enum SymbolType type);
     SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum SymbolType type);
+    char* get_type(enum SymbolType type);
+    void print_scopes();
 
 %}
 
@@ -65,7 +74,6 @@
     int intVal;
     char* strVal;
     double doubleVal;
-    struct SymbolTableEntry* exprNode;
 }
 
 %expect 2
@@ -213,14 +221,31 @@ primary:    lvalue
             ;
 
 
-lvalue:     ID {printf("id %s line %d\n", $1, yylineno);}
-            | LOCAL ID {printf("Local id %s line %d\n", $2, yylineno);}
-            | SCOPE ID {printf("Global id %s line %d\n", $2, yylineno);}
+lvalue:     ID  {
+                    Variable* var = malloc(sizeof(struct Variable));
+                    var->name = $1;
+                    var->line = yylineno;
+                    var->scope = scope;
+                    symtable_insert(var, null, 2);
+                }
+            | LOCAL ID          {
+                                    Variable* var = malloc(sizeof(struct Variable));
+                                    var->name = $2;
+                                    var->line = yylineno;
+                                    var->scope = scope;
+                                    if(scope > 0)
+                                        symtable_insert(var, null, 1);
+                                    else
+                                        symtable_insert(var, null, 0);
+                                }
+            | SCOPE ID {
+                            if (!scope_contains($2, 0)) printf("malaka %s\n", $2);
+                       }
             | member
             ;
 
 
-member:     lvalue POINT ID {printf("Member id %s at line %d\n", $3, yylineno);}
+member:     lvalue POINT ID
             | lvalue LBRACKET expr RBRACKET
             | call POINT ID
             | call LBRACKET expr RBRACKET
@@ -230,7 +255,6 @@ member:     lvalue POINT ID {printf("Member id %s at line %d\n", $3, yylineno);}
 call:       call normcall
             | lvalue callsuffix
             | LPAREN funcdef RPAREN LPAREN elist RPAREN
-            | libraryfuncs LPAREN elist RPAREN
             ;
 
 
@@ -242,7 +266,7 @@ callsuffix: normcall
 normcall:   LPAREN elist RPAREN;
 
 
-methodcall: RANGE ID {printf("Method call %s at line %d\n", $2, yylineno);} LPAREN elist RPAREN;
+methodcall: RANGE ID LPAREN elist RPAREN;
 
 
 elist:      expr commaexpr
@@ -272,16 +296,31 @@ indexelemlist:  COMMA indexelem indexelemlist
 indexelem:  LCURLY expr COLON expr RCURLY;
 
 
-funcdef:    FUNCTION ID {printf("function with id %s line %d\n", $2, yylineno);} LPAREN idlist RPAREN block {
-       //la8os h apo katw grammh
-       /*printf("Function with id: %s\n", $2);*/
-           /*Function* f = malloc(sizeof(struct Function));*/
-           /*f->name = $2;*/
-           /*f->scope = scope;*/
-           /*f->line = yylineno;*/
-           /*symtable_insert(null, f, USERFUNC);*/
+funcdef:    FUNCTION ID {
+       Function* func = malloc(sizeof(struct Function));
+       func->name = $2;
+       func->scope = scope;
+       func->line = yylineno;
+       func->args = null;
+       funcdef_counter++;
+       last_function = func;
+       symtable_insert(null, func, 4);
+       } LPAREN idlist RPAREN block {
+           funcdef_counter--;
        }
-            | FUNCTION LPAREN idlist RPAREN block {}
+            | FUNCTION {
+                   anonymous_functions++;
+                   Function* func = malloc(sizeof(struct Function));
+                   func->name = malloc(1 + strlen(itoa(anonymous_functions)));
+                   strcat(func->name, "$");
+                   strcat(func->name, itoa(anonymous_functions));
+                   func->scope = scope;
+                   func->line = yylineno;
+                   func->args = null;
+                   funcdef_counter++;
+                   last_function = func;
+                   symtable_insert(null, func, 4);
+            } LPAREN idlist RPAREN block {funcdef_counter--;}
             ;
 
 
@@ -290,21 +329,34 @@ block:      LCURLY {scope++;} stmt_list RCURLY {hide_scope(scope--);}
             ;
 
 
-libraryfuncs:   PRINT | INPUT | OBJECTMEMBERKEYS | OBJECTTOTALMEMBERS
-                | OBJECTCOPY | TOTALARGUMENTS | ARGUMENT | TYPEOF
-                | STRTONUM | SQRT | COS | SIN
-                ;
-
-
 const:      NUMBER | STRING | NIL | TRUE | FALSE | REAL;
 
 
-idlist:     ID {printf("Argument %s at line %d\n", $1, yylineno);} commaidlist
+idlist:     ID {
+                    Variable* var = malloc(sizeof(struct Variable));
+                    var->name = $1;
+                    var->scope = scope + 1;
+                    var->line = yylineno;
+                    last_function->args = malloc(strlen($1) + 1);
+                    strcat(last_function->args, $1);
+                    strcat(last_function->args, " ");
+                    symtable_insert(var, null, 3);
+               } commaidlist
             |
             ;
 
 
-commaidlist: COMMA ID commaidlist
+commaidlist: COMMA ID {
+                        Variable* var = malloc(sizeof(struct Variable));
+                        var->name = $2;
+                        var->scope = scope + 1;
+                        var->line = yylineno;
+                        int prev_args = strlen(last_function->args);
+                        last_function->args = realloc(last_function->args, prev_args + strlen($2) + 1);
+                        strcat(last_function->args, $2);
+                        strcat(last_function->args, " ");
+                        symtable_insert(var, null, 3);
+                      } commaidlist
             |
             ;
 
@@ -336,7 +388,6 @@ int yyerror(char* message) {
     return 1;
 }
 
-
 // Int to String implementation because C
 // IT MAY BE USELESS WE'LL SEE
 char* itoa(int val){
@@ -349,7 +400,6 @@ char* itoa(int val){
 
 	return &buf[i+1];
 }
-
 
 // Hash Function
 unsigned int symtable_hash(const char *pcKey) {
@@ -369,7 +419,9 @@ unsigned int symtable_hash(const char *pcKey) {
 // ^^^^ That must be fixed once we understand the rules for definitions and redeclarations
 int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 
-    unsigned int hash = symtable_hash(var ? var->name : func->name);
+    const char* name = var ? var->name : func->name;
+    unsigned int hash = symtable_hash(name);
+
 
 	SymbolTableEntry* table_entry = symtable[hash];
 	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
@@ -377,51 +429,58 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 	SymbolTableEntry* scope_prev = null;
 	SymbolTableEntry* new;
 
-	new = malloc(sizeof(SymbolTableEntry));
-    new->isActive = 1;
-    new->value.varVal = var;
-    new->value.funcVal = func;
-    new->type = type;
-	new->next = null;
-    new->next_in_scope = null;
-
 	while(table_entry) {
 
-        if(var && table_entry->value.varVal){
-            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && var->scope == table_entry->value.varVal->scope && type == table_entry->type){
-                free(new);
-			    return 0;
-            }
+        unsigned int scope = var ? var->scope : func->scope;
+        if(type == 0){
+            if(scope_contains(name, 0))
+                return 0;
         }
-        else if(func && table_entry->value.funcVal){
-            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && func->scope == table_entry->value.funcVal->scope && type == table_entry->type){
-                free(new);
-			    return 0;
-            }
+        else if(type == 1){
+            if (scope_contains(name, scope))
+                return 1;
+            if (check_for_libfunc(name) && scope != 0)
+                return 0;
         }
+        else if (type == 2) {
+            for (int i = scope; i > 0; i--) {
+                if (scope_contains(name, i)) {
+                    if (symtable_lookup(name, 4)) return 1;
+                    if (symtable_lookup(name, 5)) return 1;
+                    if (funcdef_counter == 0) return 1;
+                    else return 0;
+                }
+            }
+            if (scope_contains(name, 0)) return 1;
+        }
+        else if (type == 3) {
+            if (scope_contains(name, scope - 1)) return 0;
+            if (symtable_lookup(name, 5)) return 0;
+        }
+        else if (type == 4) {
+            if (scope_contains(name, scope))
+                return 0;
+            if (check_for_libfunc(name))
+                return 0;
+        }
+
 
 		table_prev = table_entry;
 		table_entry = table_entry->next;
 	}
 
 	while(scope_entry) {
-
-        if(var && scope_entry->value.varVal){
-            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && var->scope == scope_entry->value.varVal->scope && type == scope_entry->type){
-                free(new);
-			    return 0;
-            }
-        }
-        else if(func && scope_entry->value.funcVal){
-            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && func->scope == scope_entry->value.funcVal->scope && type == scope_entry->type){
-                free(new);
-			    return 0;
-            }
-        }
-
 		scope_prev = scope_entry;
 		scope_entry = scope_entry->next_in_scope;
 	}
+
+	new = malloc(sizeof(struct SymbolTableEntry));
+    new->isActive = 1;
+    new->varVal = var;
+    new->funcVal = func;
+    new->type = type;
+	new->next = null;
+    new->next_in_scope = null;
 
 	if   (table_prev) table_prev->next = new;
 	else symtable[hash] = new;
@@ -430,6 +489,14 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
 	else scope_link[var ? var->scope : func->scope] = new;
 
 	return 1;
+}
+
+
+int check_for_libfunc(const char* name){
+    for(int i = 0; i < 12; i++)
+        if(strcmp(name, libfuncs[i]) == 0)
+            return 1;
+    return 0;
 }
 
 
@@ -454,12 +521,12 @@ int symtable_contains(const Variable* var, const Function* func, enum SymbolType
 	SymbolTableEntry* table_entry = symtable[hash];
 
 	while(table_entry) {
-        if(var && table_entry->value.varVal){
-            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && type == table_entry->type)
+        if(var && table_entry->varVal){
+            if(strcmp(var->name, table_entry->varVal->name) == 0 && type == table_entry->type)
 			    return 1;
         }
-        else if(func && table_entry->value.funcVal){
-            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && type == table_entry->type)
+        else if(func && table_entry->funcVal){
+            if(strcmp(func->name, table_entry->funcVal->name) == 0 && type == table_entry->type)
 			    return 1;
         }
 
@@ -471,19 +538,15 @@ int symtable_contains(const Variable* var, const Function* func, enum SymbolType
 
 
 // Return true if a scope contains an entry
-int scope_contains(const Variable* var, const Function* func, enum SymbolType type){
+int scope_contains(const char* name, const unsigned int scope){
 
-	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
+	SymbolTableEntry* scope_entry = scope_link[scope];
 
 	while(scope_entry) {
-        if(var && scope_entry->value.varVal){
-            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && type == scope_entry->type)
+        const char* e_name = scope_entry->varVal ? scope_entry->varVal->name : scope_entry->funcVal->name;
+
+        if(strcmp(name, e_name) == 0 && scope_entry->isActive)
 			    return 1;
-        }
-        else if(func && scope_entry->value.funcVal){
-            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && type == scope_entry->type)
-			    return 1;
-        }
 
 		scope_entry = scope_entry->next_in_scope;
 	}
@@ -493,25 +556,26 @@ int scope_contains(const Variable* var, const Function* func, enum SymbolType ty
 
 
 // Return an entry from a bucket
-SymbolTableEntry* symtable_lookup(const Variable* var, const Function* func, enum SymbolType type){
+int symtable_lookup(const char* name, enum SymbolType type){
 
-	unsigned int hash = symtable_hash(var ? var->name : func->name);
+	unsigned int hash = symtable_hash(name);
 	SymbolTableEntry* table_entry = symtable[hash];
 
 	while(table_entry) {
-        if(var && table_entry->value.varVal){
-            if(strcmp(var->name, table_entry->value.varVal->name) == 0 && type == table_entry->type)
-			    return table_entry;
+        if (table_entry->varVal) {
+            if(strcmp(name, table_entry->varVal->name) == 0 && type == table_entry->type)
+                return 1;
         }
-        else if(func && table_entry->value.funcVal){
-            if(strcmp(func->name, table_entry->value.funcVal->name) == 0 && type == table_entry->type)
-			    return table_entry;
+        else if (table_entry->funcVal) {
+            if(strcmp(name, table_entry->funcVal->name) == 0 && type == table_entry->type)
+                return 1;
         }
+
 
 		table_entry = table_entry->next;
 	}
 
-	return null;
+	return 0;
 }
 
 
@@ -521,12 +585,12 @@ SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum S
 	SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
 
 	while(scope_entry) {
-        if(var && scope_entry->value.varVal){
-            if(strcmp(var->name, scope_entry->value.varVal->name) == 0 && type == scope_entry->type)
+        if(var && scope_entry->varVal){
+            if(strcmp(var->name, scope_entry->varVal->name) == 0 && type == scope_entry->type)
 			    return scope_entry;
         }
-        else if(func && scope_entry->value.funcVal){
-            if(strcmp(func->name, scope_entry->value.funcVal->name) == 0 && type == scope_entry->type)
+        else if(func && scope_entry->funcVal){
+            if(strcmp(func->name, scope_entry->funcVal->name) == 0 && type == scope_entry->type)
 			    return scope_entry;
         }
 
@@ -534,4 +598,76 @@ SymbolTableEntry* scope_lookup(const Variable* var, const Function* func, enum S
 	}
 
 	return null;
+}
+
+void initialize_libfuncs() {
+    for (int i = 0; i < 12; i++) {
+        Function* func = malloc(sizeof(Function));
+        func->name = libfuncs[i];
+        func->scope = 0;
+        func->line = 0;
+        func->args = null;
+        symtable_insert(null, func, 5);
+    }
+}
+
+
+void print_scopes(){
+    for(int i = 0; i < MAX; i++){
+        SymbolTableEntry* curr = scope_link[i];
+        if (!curr) break;
+        fprintf(yyout, "\n--------------- Scope #%d ---------------\n", i);
+        while(curr){
+            char* type = get_type(curr->type);
+            if(curr->varVal) {
+                fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d)\n", curr->varVal->name, type, curr->varVal->line, curr->varVal->scope);
+            }
+            else {
+                if (curr->funcVal->args)
+                    fprintf(yyout, "\"%s\" { args: %s} [%s] (line %d) (scope %d)\n", curr->funcVal->name, curr->funcVal->args, type, curr->funcVal->line, curr->funcVal->scope);
+                else
+                    fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d)\n", curr->funcVal->name, type, curr->funcVal->line, curr->funcVal->scope);
+            }
+            curr = curr->next_in_scope;
+        }
+    }
+}
+
+char* get_type(enum SymbolType type) {
+    switch (type) {
+        case 0:
+            return "global variable";
+        case 1:
+            return "local variable";
+        case 2:
+            return "local variable";
+        case 3:
+            return "formal argument";
+        case 4:
+            return "user function";
+        case 5:
+            return "library function";
+    }
+    return null;
+}
+
+int main(int argc, char** argv) {
+    if(argc > 1) {
+        if(!(yyin = fopen(argv[1], "r"))) {
+            fprintf(stderr, "Cannot read file: %s\n", argv[1]);
+            return 1;
+        }
+    }
+    else yyin = stdin;
+
+    if (argc > 2) {
+        yyout = fopen(argv[2], "w");
+    }
+    else yyout = stdout;
+
+    initialize_libfuncs();
+    yyparse();
+    print_scopes();
+
+    return 0;
 }

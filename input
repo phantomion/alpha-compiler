@@ -1,6 +1,7 @@
+local die = 2;
 x = 2;
 function foo() {
-    function foo(bar) {
+    function foo(bar,takos) {
         local foo = 2;
         return bar + foo;
     }
@@ -11,7 +12,9 @@ function foo() {
     }
     x = (function() {});
 }
+gia_ela = (function() {return 1;});
 lel = print();
+input();
 lul = "Illegal escape char(\\m) \m";
 lul = "Illegal escape char\n \\n";
 lala = mhtsos(asjdk);

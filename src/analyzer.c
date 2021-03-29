@@ -341,8 +341,6 @@ void yyfree ( void *  );
 	}
 #define YY_AT_BOL() (YY_CURRENT_BUFFER_LVALUE->yy_at_bol)
 
-/* Begin user sect3 */
-
 #define yywrap() (/*CONSTCOND*/1)
 #define YY_SKIP_YYWRAP
 typedef flex_uint8_t YY_CHAR;
@@ -603,10 +601,10 @@ char *yytext;
 #line 2 "analyzer.l"
     #include "parser.h"
 
-#line 606 "./src/analyzer.c"
+#line 604 "./src/analyzer.c"
 #define YY_NO_INPUT 1
 
-#line 609 "./src/analyzer.c"
+#line 607 "./src/analyzer.c"
 
 #define INITIAL 0
 #define STR 1
@@ -833,7 +831,7 @@ YY_DECL
     int tmp_nest = 0;
 
 
-#line 836 "./src/analyzer.c"
+#line 834 "./src/analyzer.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1249,7 +1247,7 @@ YY_RULE_SETUP
 case 66:
 YY_RULE_SETUP
 #line 187 "analyzer.l"
-{yylval.strVal = yytext; return ID;}
+{yylval.strVal = strdup(yytext); return ID;}
 	YY_BREAK
 case 67:
 *yy_cp = (yy_hold_char); /* undo effects of setting up yytext */
@@ -1310,10 +1308,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 213 "analyzer.l"
+#line 212 "analyzer.l"
 ECHO;
 	YY_BREAK
-#line 1316 "./src/analyzer.c"
+#line 1314 "./src/analyzer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STR):
 	yyterminate();
@@ -2290,25 +2288,4 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 213 "analyzer.l"
-
-
-int main(int argc, char** argv) {
-    if(argc > 1) {
-        if(!(yyin = fopen(argv[1], "r"))) {
-            fprintf(stderr, "Cannot read file: %s\n", argv[1]);
-            return 1;
-        }
-    }
-    else yyin = stdin;
-
-    if (argc > 2) {
-        yyout = fopen(argv[2], "w");
-    }
-    else yyout = stdout;
-
-    yyparse();
-
-    return 0;
-}
-
+#line 212 "analyzer.l"
