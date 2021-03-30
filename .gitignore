@@ -5,3 +5,5 @@ src/parser.output
 bin/
 src/parser.c
 src/parser.h
+src/analyzer.c
+src/analyzer.h
