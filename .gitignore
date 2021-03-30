@@ -3,3 +3,5 @@ input
 tests/
 src/parser.output
 bin/
+src/parser.c
+src/parser.h
