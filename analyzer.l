@@ -63,18 +63,6 @@ COLON       ":"
 SCOPE       "::"
 POINT       "."
 RANGE       ".."
-PRINT       "print"
-INPUT       "input"
-OBJECTMEMBERKEYS "objectmemberkeys"
-OBJECTTOTALMEMBERS "objecttotalmembers"
-OBJECTCOPY  "objectcopy"
-TOTALARGUMENTS "totalarguments"
-ARGUMENT    "argument"
-TYPEOF      "typeof"
-STRTONUM    "strtonum"
-SQRT        "sqrt"
-COS         "cos"
-SIN         "sin"
 
 COMMENT     \/\/.*$
 
@@ -170,18 +158,6 @@ COMMENT     \/\/.*$
 {POINT}         {return POINT;}
 {RANGE}         {return RANGE;}
 {COMMA}         {return COMMA;}
-{PRINT}         {return PRINT;}
-{INPUT}         {return INPUT;}
-{OBJECTMEMBERKEYS} {return OBJECTMEMBERKEYS;}
-{OBJECTTOTALMEMBERS} {return OBJECTTOTALMEMBERS;}
-{OBJECTCOPY}    {return OBJECTCOPY;}
-{TOTALARGUMENTS} {return TOTALARGUMENTS;}
-{ARGUMENT}      {return ARGUMENT;}
-{TYPEOF}        {return TYPEOF;}
-{STRTONUM}      {return STRTONUM;}
-{SQRT}          {return SQRT;}
-{COS}           {return COS;}
-{SIN}           {return SIN;}
 
 {ID}            {yylval.strVal = strdup(yytext); return ID;}
 

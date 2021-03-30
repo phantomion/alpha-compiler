@@ -100,19 +100,8 @@ extern int yydebug;
     SCOPE = 301,                   /* SCOPE  */
     POINT = 302,                   /* POINT  */
     RANGE = 303,                   /* RANGE  */
-    PRINT = 304,                   /* PRINT  */
-    INPUT = 305,                   /* INPUT  */
-    OBJECTMEMBERKEYS = 306,        /* OBJECTMEMBERKEYS  */
-    OBJECTTOTALMEMBERS = 307,      /* OBJECTTOTALMEMBERS  */
-    OBJECTCOPY = 308,              /* OBJECTCOPY  */
-    TOTALARGUMENTS = 309,          /* TOTALARGUMENTS  */
-    ARGUMENT = 310,                /* ARGUMENT  */
-    TYPEOF = 311,                  /* TYPEOF  */
-    STRTONUM = 312,                /* STRTONUM  */
-    SQRT = 313,                    /* SQRT  */
-    COS = 314,                     /* COS  */
-    SIN = 315,                     /* SIN  */
-    MUL_COMMENT = 316              /* MUL_COMMENT  */
+    MUL_COMMENT = 304,             /* MUL_COMMENT  */
+    UMINUS = 305                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -121,13 +110,13 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 73 "parser.y"
+#line 77 "parser.y"
 
     int intVal;
     char* strVal;
     double doubleVal;
 
-#line 131 "./src/parser.h"
+#line 120 "./src/parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

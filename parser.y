@@ -9,6 +9,7 @@
     int scope = 0;
     int funcdef_counter = 0;
     int anonymous_functions = 0;
+    int loop_counter = 0;
 
     extern int yylineno;
     extern char* yytext;
@@ -17,6 +18,9 @@
     #define MAX 509
     #define HASH_MULTIPLIER 65599
     #define null NULL
+    #define LIBFUNC_COLLISION 2
+    #define COLLISION 3
+    #define NOT_ACCESSIBLE 4
 
     char* libfuncs[] = { "print", "input", "objectmemberkeys", "objecttotalmembers",
     "objectcopy", "totalarguments", "argument", "typeof", "strtonum", "sqrt",
@@ -128,22 +132,10 @@
 %token SCOPE
 %token POINT
 %token RANGE
-%token PRINT
-%token INPUT
-%token OBJECTMEMBERKEYS
-%token OBJECTTOTALMEMBERS
-%token OBJECTCOPY
-%token TOTALARGUMENTS
-%token ARGUMENT
-%token TYPEOF
-%token STRTONUM
-%token SQRT
-%token COS
-%token SIN
 %token MUL_COMMENT
 
 %right ASSIGN
-%right NOT INC DEC
+%right NOT INC DEC UMINUS
 %left COMMA
 %left OR
 %left AND
@@ -166,8 +158,8 @@ stmt:       expr SEMICOLON
             | whilestmt
             | forstmt
             | returnstmt
-            | BREAK SEMICOLON
-            | CONTINUE SEMICOLON
+            | BREAK SEMICOLON {if (loop_counter == 0) yyerror("Error: Usage of break outside of loop");}
+            | CONTINUE SEMICOLON {if (loop_counter == 0) yyerror("Error: Usage of continue outside of loop");}
             | block
             | funcdef
             | SEMICOLON
@@ -205,7 +197,7 @@ term:       LPAREN expr RPAREN
             | NOT expr
             | INC lvalue
             | lvalue INC
-            | DEC lvalue
+            | DEC lvalue %prec UMINUS
             | lvalue DEC
             ;
 
@@ -226,20 +218,28 @@ lvalue:     ID  {
                     var->name = $1;
                     var->line = yylineno;
                     var->scope = scope;
-                    symtable_insert(var, null, 2);
+                    if (symtable_insert(var, null, 2) == NOT_ACCESSIBLE) {
+                        yyerror("Error: Symbol not accessible");
+                    }
                 }
             | LOCAL ID          {
                                     Variable* var = malloc(sizeof(struct Variable));
                                     var->name = $2;
                                     var->line = yylineno;
                                     var->scope = scope;
-                                    if(scope > 0)
-                                        symtable_insert(var, null, 1);
-                                    else
-                                        symtable_insert(var, null, 0);
+                                    if(scope > 0) {
+                                        if (symtable_insert(var, null, 1) == LIBFUNC_COLLISION) {
+                                            yyerror("Error: Trying to shadow library function");
+                                        }
+                                    }
+                                    else {
+                                        if (symtable_insert(var, null, 0) == LIBFUNC_COLLISION) {
+                                            yyerror("Error: Trying to shadow library function");
+                                        }
+                                    }
                                 }
             | SCOPE ID {
-                            if (!scope_contains($2, 0)) printf("malaka %s\n", $2);
+                            if (!scope_contains($2, 0)) yyerror("Error: Global symbol not found");
                        }
             | member
             ;
@@ -252,7 +252,7 @@ member:     lvalue POINT ID
             ;
 
 
-call:       call normcall
+call:       call LPAREN elist RPAREN
             | lvalue callsuffix
             | LPAREN funcdef RPAREN LPAREN elist RPAREN
             ;
@@ -304,10 +304,14 @@ funcdef:    FUNCTION ID {
        func->args = null;
        funcdef_counter++;
        last_function = func;
-       symtable_insert(null, func, 4);
-       } LPAREN idlist RPAREN block {
-           funcdef_counter--;
+       int code = symtable_insert(null, func, 4);
+       if (code == LIBFUNC_COLLISION) {
+           yyerror("Error: Trying to shadow libfunc");
        }
+       else if (code == COLLISION) {
+           yyerror("Error: Symbol redefinition");
+       }
+       } LPAREN idlist RPAREN block {funcdef_counter--;}
             | FUNCTION {
                    anonymous_functions++;
                    Function* func = malloc(sizeof(struct Function));
@@ -366,14 +370,14 @@ ifstmt:     IF LPAREN expr RPAREN stmt
             ;
 
 
-whilestmt:  WHILE LPAREN expr RPAREN stmt;
+whilestmt:  WHILE LPAREN expr RPAREN {loop_counter++;} stmt {loop_counter--;};
 
 
-forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN stmt;
+forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};
 
 
-returnstmt: RETURN expr SEMICOLON
-          | RETURN SEMICOLON
+returnstmt: RETURN expr SEMICOLON {if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function");}
+          | RETURN SEMICOLON {if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function");}
           ;
 
 comment: COMMENT
@@ -440,15 +444,16 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
             if (scope_contains(name, scope))
                 return 1;
             if (check_for_libfunc(name) && scope != 0)
-                return 0;
+                return LIBFUNC_COLLISION;
         }
         else if (type == 2) {
+            if (symtable_lookup(name, 3)) return 1;
             for (int i = scope; i > 0; i--) {
                 if (scope_contains(name, i)) {
                     if (symtable_lookup(name, 4)) return 1;
                     if (symtable_lookup(name, 5)) return 1;
                     if (funcdef_counter == 0) return 1;
-                    else return 0;
+                    else return NOT_ACCESSIBLE;
                 }
             }
             if (scope_contains(name, 0)) return 1;
@@ -459,9 +464,9 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
         }
         else if (type == 4) {
             if (scope_contains(name, scope))
-                return 0;
+                return COLLISION;
             if (check_for_libfunc(name))
-                return 0;
+                return LIBFUNC_COLLISION;
         }
 
 
@@ -563,11 +568,11 @@ int symtable_lookup(const char* name, enum SymbolType type){
 
 	while(table_entry) {
         if (table_entry->varVal) {
-            if(strcmp(name, table_entry->varVal->name) == 0 && type == table_entry->type)
+            if(strcmp(name, table_entry->varVal->name) == 0 && type == table_entry->type && table_entry->isActive)
                 return 1;
         }
         else if (table_entry->funcVal) {
-            if(strcmp(name, table_entry->funcVal->name) == 0 && type == table_entry->type)
+            if(strcmp(name, table_entry->funcVal->name) == 0 && type == table_entry->type && table_entry->isActive)
                 return 1;
         }
 

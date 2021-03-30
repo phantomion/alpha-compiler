@@ -1,23 +1,47 @@
 local die = 2;
 x = 2;
+print(typeof(x));
+::print(::typeof(::x));
 function foo() {
+    function qq(bar, qq) {
+        local print = y;
+        return qq;
+    }
     function foo(bar,takos) {
         local foo = 2;
         return bar + foo;
+        function h() {
+            return bar + takos;
+        }
     }
+    function foo() {}
     mhtsos = 2 + 5 * 3;
     {
         local foo = [{foo: [{foo:foo}]}];
         foo.foo..foo(::foo);
     }
     x = (function() {});
+    ::a;
+    ::x;
+    {
+        local x=::x;
+        local f = (function(){return x; });
+    }
 }
+local foo = 10;
 gia_ela = (function() {return 1;});
 lel = print();
 input();
 lul = "Illegal escape char(\\m) \m";
 lul = "Illegal escape char\n \\n";
 lala = mhtsos(asjdk);
+return th + mana + sou;
+
+for(i = 0; i < 10; i++) {
+    break;
+}
+continue;
+for(;;) {}
 
 // this is a comment
 /* multi

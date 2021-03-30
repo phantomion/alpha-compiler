@@ -469,7 +469,7 @@ extern int yylex (void);
 #undef yyTABLES_NAME
 #endif
 
-#line 212 "analyzer.l"
+#line 188 "analyzer.l"
 
 #line 474 "./src/analyzer.h"
 #undef yyIN_HEADER
