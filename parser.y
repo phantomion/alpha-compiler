@@ -28,10 +28,20 @@
     int intVal;
     char* strVal;
     double doubleVal;
-    SymbolTableEntry* exprNode;
+    struct SymbolTableEntry* exprNode;
 }
 
 %type <exprNode> lvalue
+%type <exprNode> member
+%type <exprNode> call
+%type <exprNode> funcdef
+%type <exprNode> elist
+%type <exprNode> expr
+%type <exprNode> term
+%type <exprNode> primary
+%type <exprNode> assignexpr
+%type <exprNode> objectdef
+%type <exprNode> const
 
 %expect 2
 
@@ -144,25 +154,25 @@ expr:       assignexpr
             ;
 
 
-term:       LPAREN expr RPAREN
-            | primary
-            | SUB expr %prec UMINUS
-            | NOT expr
-            | INC lvalue
-            | lvalue INC
-            | DEC lvalue
-            | lvalue DEC
+term:       LPAREN expr RPAREN {$$ = null;}
+            | primary {$$ = null;}
+            | SUB expr %prec UMINUS {$$ = null;}
+            | NOT expr {$$ = null;}
+            | INC lvalue {$$ = null;}
+            | lvalue INC {$$ = null;}
+            | DEC lvalue {$$ = null;}
+            | lvalue DEC {$$ = null;}
             ;
 
 
 assignexpr: lvalue ASSIGN expr;
 
 
-primary:    lvalue
-            | call
-            | objectdef
-            | LPAREN funcdef RPAREN
-            | const
+primary:    lvalue {$$ = null;}
+            | call {$$ = null;}
+            | objectdef {$$ = null;}
+            | LPAREN funcdef RPAREN {$$ = null;}
+            | const {$$ = null;}
             ;
 
 
@@ -207,7 +217,7 @@ member:     lvalue POINT ID
 
 call:       call LPAREN elist RPAREN
             | lvalue callsuffix
-            | LPAREN funcdef RPAREN LPAREN elist RPAREN
+            | LPAREN funcdef RPAREN LPAREN elist RPAREN {$$ = null;}
             ;
 
 
@@ -223,7 +233,7 @@ methodcall: RANGE ID LPAREN elist RPAREN;
 
 
 elist:      expr commaexpr
-            |
+            | {$$ = null;}
             ;
 
 
@@ -232,8 +242,8 @@ commaexpr:  COMMA expr commaexpr
             ;
 
 
-objectdef:  LBRACKET elist RBRACKET
-            | LBRACKET indexed RBRACKET
+objectdef:  LBRACKET elist RBRACKET {$$ = null;}
+            | LBRACKET indexed RBRACKET {$$ = null;}
             ;
 
 
@@ -286,7 +296,12 @@ block:      LCURLY {scope++;} stmt_list RCURLY {hide_scope(scope--);}
             ;
 
 
-const:      NUMBER | STRING | NIL | TRUE | FALSE | REAL;
+const:      NUMBER {$$ = null;}
+            | STRING {$$ = null;}
+            | NIL {$$ = null;}
+            | TRUE {$$ = null;}
+            | FALSE {$$ = null;}
+            | REAL {$$ = null;};
 
 
 idlist:     ID {

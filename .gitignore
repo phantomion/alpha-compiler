@@ -1,7 +1,6 @@
-src/analyzer
 input
 tests/
 src/parser.output
 bin/
-src/parser.c
-src/parser.h
+src/parser*
+src/analyzer*
