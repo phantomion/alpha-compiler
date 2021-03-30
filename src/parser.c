@@ -85,9 +85,11 @@
     extern char* yytext;
     extern FILE* yyin;
     extern FILE* yyout;
+
     #define MAX 509
     #define HASH_MULTIPLIER 65599
     #define null NULL
+
     #define LIBFUNC_COLLISION 2
     #define COLLISION 3
     #define NOT_ACCESSIBLE 4
@@ -140,7 +142,7 @@
     void print_scopes();
 
 
-#line 144 "./src/parser.c"
+#line 146 "./src/parser.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -628,16 +630,16 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   154,   154,   156,   157,   158,   159,   160,   161,   162,
-     163,   164,   165,   166,   170,   171,   175,   176,   177,   178,
-     179,   180,   181,   182,   183,   184,   185,   186,   187,   188,
-     189,   190,   194,   195,   196,   197,   198,   199,   200,   201,
-     205,   208,   209,   210,   211,   212,   216,   225,   241,   244,
-     248,   249,   250,   251,   255,   256,   257,   261,   262,   266,
-     269,   272,   273,   277,   278,   282,   283,   287,   291,   292,
-     296,   299,   299,   315,   315,   331,   331,   332,   336,   336,
-     336,   336,   336,   336,   339,   339,   349,   353,   353,   364,
-     368,   369,   373,   373,   376,   376,   379,   380,   383,   384
+       0,   156,   156,   158,   159,   160,   161,   162,   163,   164,
+     165,   166,   167,   168,   172,   173,   177,   178,   179,   180,
+     181,   182,   183,   184,   185,   186,   187,   188,   189,   190,
+     191,   192,   196,   197,   198,   199,   200,   201,   202,   203,
+     207,   210,   211,   212,   213,   214,   218,   227,   243,   246,
+     250,   251,   252,   253,   257,   258,   259,   263,   264,   268,
+     271,   274,   275,   279,   280,   284,   285,   289,   293,   294,
+     298,   301,   301,   317,   317,   333,   333,   334,   338,   338,
+     338,   338,   338,   338,   341,   341,   357,   361,   361,   378,
+     382,   383,   387,   387,   390,   390,   393,   394,   397,   398
 };
 #endif
 
@@ -1450,25 +1452,25 @@ yyreduce:
   switch (yyn)
     {
   case 8: /* stmt: BREAK SEMICOLON  */
-#line 161 "parser.y"
+#line 163 "parser.y"
                               {if (loop_counter == 0) yyerror("Error: Usage of break outside of loop");}
-#line 1456 "./src/parser.c"
+#line 1458 "./src/parser.c"
     break;
 
   case 9: /* stmt: CONTINUE SEMICOLON  */
-#line 162 "parser.y"
+#line 164 "parser.y"
                                  {if (loop_counter == 0) yyerror("Error: Usage of continue outside of loop");}
-#line 1462 "./src/parser.c"
+#line 1464 "./src/parser.c"
     break;
 
   case 31: /* expr: error  */
-#line 190 "parser.y"
+#line 192 "parser.y"
                     {yyclearin;}
-#line 1468 "./src/parser.c"
+#line 1470 "./src/parser.c"
     break;
 
   case 46: /* lvalue: ID  */
-#line 216 "parser.y"
+#line 218 "parser.y"
                 {
                     Variable* var = malloc(sizeof(struct Variable));
                     var->name = (yyvsp[0].strVal);
@@ -1478,11 +1480,11 @@ yyreduce:
                         yyerror("Error: Symbol not accessible");
                     }
                 }
-#line 1482 "./src/parser.c"
+#line 1484 "./src/parser.c"
     break;
 
   case 47: /* lvalue: LOCAL ID  */
-#line 225 "parser.y"
+#line 227 "parser.y"
                                 {
                                     Variable* var = malloc(sizeof(struct Variable));
                                     var->name = (yyvsp[0].strVal);
@@ -1499,19 +1501,19 @@ yyreduce:
                                         }
                                     }
                                 }
-#line 1503 "./src/parser.c"
+#line 1505 "./src/parser.c"
     break;
 
   case 48: /* lvalue: SCOPE ID  */
-#line 241 "parser.y"
+#line 243 "parser.y"
                        {
                             if (!scope_contains((yyvsp[0].strVal), 0)) yyerror("Error: Global symbol not found");
                        }
-#line 1511 "./src/parser.c"
+#line 1513 "./src/parser.c"
     break;
 
   case 71: /* $@1: %empty  */
-#line 299 "parser.y"
+#line 301 "parser.y"
                         {
        Function* func = malloc(sizeof(struct Function));
        func->name = (yyvsp[0].strVal);
@@ -1528,17 +1530,17 @@ yyreduce:
            yyerror("Error: Symbol redefinition");
        }
        }
-#line 1532 "./src/parser.c"
+#line 1534 "./src/parser.c"
     break;
 
   case 72: /* funcdef: FUNCTION ID $@1 LPAREN idlist RPAREN block  */
-#line 314 "parser.y"
+#line 316 "parser.y"
                                     {funcdef_counter--;}
-#line 1538 "./src/parser.c"
+#line 1540 "./src/parser.c"
     break;
 
   case 73: /* $@2: %empty  */
-#line 315 "parser.y"
+#line 317 "parser.y"
                        {
                    anonymous_functions++;
                    Function* func = malloc(sizeof(struct Function));
@@ -1552,29 +1554,29 @@ yyreduce:
                    last_function = func;
                    symtable_insert(null, func, 4);
             }
-#line 1556 "./src/parser.c"
+#line 1558 "./src/parser.c"
     break;
 
   case 74: /* funcdef: FUNCTION $@2 LPAREN idlist RPAREN block  */
-#line 327 "parser.y"
+#line 329 "parser.y"
                                          {funcdef_counter--;}
-#line 1562 "./src/parser.c"
+#line 1564 "./src/parser.c"
     break;
 
   case 75: /* $@3: %empty  */
-#line 331 "parser.y"
+#line 333 "parser.y"
                    {scope++;}
-#line 1568 "./src/parser.c"
+#line 1570 "./src/parser.c"
     break;
 
   case 76: /* block: LCURLY $@3 stmt_list RCURLY  */
-#line 331 "parser.y"
+#line 333 "parser.y"
                                                {hide_scope(scope--);}
-#line 1574 "./src/parser.c"
+#line 1576 "./src/parser.c"
     break;
 
   case 84: /* $@4: %empty  */
-#line 339 "parser.y"
+#line 341 "parser.y"
                {
                     Variable* var = malloc(sizeof(struct Variable));
                     var->name = (yyvsp[0].strVal);
@@ -1583,13 +1585,19 @@ yyreduce:
                     last_function->args = malloc(strlen((yyvsp[0].strVal)) + 1);
                     strcat(last_function->args, (yyvsp[0].strVal));
                     strcat(last_function->args, " ");
-                    symtable_insert(var, null, 3);
+                    int code = symtable_insert(var, null, 3);
+                    if (code == COLLISION) {
+                        yyerror("Error: Symbol redefinition");
+                    }
+                    else if (code == LIBFUNC_COLLISION) {
+                        yyerror("Error: Trying to shadow library function");
+                    }
                }
-#line 1589 "./src/parser.c"
+#line 1597 "./src/parser.c"
     break;
 
   case 87: /* $@5: %empty  */
-#line 353 "parser.y"
+#line 361 "parser.y"
                       {
                         Variable* var = malloc(sizeof(struct Variable));
                         var->name = (yyvsp[0].strVal);
@@ -1599,49 +1607,55 @@ yyreduce:
                         last_function->args = realloc(last_function->args, prev_args + strlen((yyvsp[0].strVal)) + 1);
                         strcat(last_function->args, (yyvsp[0].strVal));
                         strcat(last_function->args, " ");
-                        symtable_insert(var, null, 3);
+                        int code = symtable_insert(var, null, 3);
+                        if (code == COLLISION) {
+                            yyerror("Error: Symbol redefinition");
+                        }
+                        else if (code == LIBFUNC_COLLISION) {
+                            yyerror("Error: Trying to shadow library function");
+                        }
                       }
-#line 1605 "./src/parser.c"
+#line 1619 "./src/parser.c"
     break;
 
   case 92: /* $@6: %empty  */
-#line 373 "parser.y"
+#line 387 "parser.y"
                                      {loop_counter++;}
-#line 1611 "./src/parser.c"
+#line 1625 "./src/parser.c"
     break;
 
   case 93: /* whilestmt: WHILE LPAREN expr RPAREN $@6 stmt  */
-#line 373 "parser.y"
+#line 387 "parser.y"
                                                             {loop_counter--;}
-#line 1617 "./src/parser.c"
+#line 1631 "./src/parser.c"
     break;
 
   case 94: /* $@7: %empty  */
-#line 376 "parser.y"
+#line 390 "parser.y"
                                                                    {loop_counter++;}
-#line 1623 "./src/parser.c"
+#line 1637 "./src/parser.c"
     break;
 
   case 95: /* forstmt: FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN $@7 stmt  */
-#line 376 "parser.y"
+#line 390 "parser.y"
                                                                                           {loop_counter--;}
-#line 1629 "./src/parser.c"
+#line 1643 "./src/parser.c"
     break;
 
   case 96: /* returnstmt: RETURN expr SEMICOLON  */
-#line 379 "parser.y"
+#line 393 "parser.y"
                                   {if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function");}
-#line 1635 "./src/parser.c"
+#line 1649 "./src/parser.c"
     break;
 
   case 97: /* returnstmt: RETURN SEMICOLON  */
-#line 380 "parser.y"
+#line 394 "parser.y"
                              {if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function");}
-#line 1641 "./src/parser.c"
+#line 1655 "./src/parser.c"
     break;
 
 
-#line 1645 "./src/parser.c"
+#line 1659 "./src/parser.c"
 
       default: break;
     }
@@ -1835,11 +1849,11 @@ yyreturn:
   return yyresult;
 }
 
-#line 388 "parser.y"
+#line 402 "parser.y"
 
 
 int yyerror(char* message) {
-    fprintf(yyout, "%s at line %d\n", message, yylineno);
+    fprintf(yyout, "%s at token %s line %d\n", message, yytext, yylineno);
     return 1;
 }
 
@@ -1910,8 +1924,8 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
             if (scope_contains(name, 0)) return 1;
         }
         else if (type == 3) {
-            if (scope_contains(name, scope - 1)) return 0;
-            if (symtable_lookup(name, 5)) return 0;
+            if (scope_contains(name, scope - 1)) return COLLISION;
+            if (symtable_lookup(name, 5)) return LIBFUNC_COLLISION;
         }
         else if (type == 4) {
             if (scope_contains(name, scope))

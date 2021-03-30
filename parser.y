@@ -15,9 +15,11 @@
     extern char* yytext;
     extern FILE* yyin;
     extern FILE* yyout;
+
     #define MAX 509
     #define HASH_MULTIPLIER 65599
     #define null NULL
+
     #define LIBFUNC_COLLISION 2
     #define COLLISION 3
     #define NOT_ACCESSIBLE 4
@@ -78,7 +80,10 @@
     int intVal;
     char* strVal;
     double doubleVal;
+    SymbolTableEntry* exprNode;
 }
+
+%type <exprNode> lvalue
 
 %expect 2
 
@@ -193,11 +198,11 @@ expr:       assignexpr
 
 term:       LPAREN expr RPAREN
             | primary
-            | SUB expr
+            | SUB expr %prec UMINUS
             | NOT expr
             | INC lvalue
             | lvalue INC
-            | DEC lvalue %prec UMINUS
+            | DEC lvalue
             | lvalue DEC
             ;
 
@@ -344,7 +349,13 @@ idlist:     ID {
                     last_function->args = malloc(strlen($1) + 1);
                     strcat(last_function->args, $1);
                     strcat(last_function->args, " ");
-                    symtable_insert(var, null, 3);
+                    int code = symtable_insert(var, null, 3);
+                    if (code == COLLISION) {
+                        yyerror("Error: Symbol redefinition");
+                    }
+                    else if (code == LIBFUNC_COLLISION) {
+                        yyerror("Error: Trying to shadow library function");
+                    }
                } commaidlist
             |
             ;
@@ -359,7 +370,13 @@ commaidlist: COMMA ID {
                         last_function->args = realloc(last_function->args, prev_args + strlen($2) + 1);
                         strcat(last_function->args, $2);
                         strcat(last_function->args, " ");
-                        symtable_insert(var, null, 3);
+                        int code = symtable_insert(var, null, 3);
+                        if (code == COLLISION) {
+                            yyerror("Error: Symbol redefinition");
+                        }
+                        else if (code == LIBFUNC_COLLISION) {
+                            yyerror("Error: Trying to shadow library function");
+                        }
                       } commaidlist
             |
             ;
@@ -388,7 +405,7 @@ comment: COMMENT
 %%
 
 int yyerror(char* message) {
-    fprintf(yyout, "%s at line %d\n", message, yylineno);
+    fprintf(yyout, "%s at token %s line %d\n", message, yytext, yylineno);
     return 1;
 }
 
@@ -459,8 +476,8 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
             if (scope_contains(name, 0)) return 1;
         }
         else if (type == 3) {
-            if (scope_contains(name, scope - 1)) return 0;
-            if (symtable_lookup(name, 5)) return 0;
+            if (scope_contains(name, scope - 1)) return COLLISION;
+            if (symtable_lookup(name, 5)) return LIBFUNC_COLLISION;
         }
         else if (type == 4) {
             if (scope_contains(name, scope))
