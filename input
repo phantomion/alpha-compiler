@@ -1,6 +1,8 @@
 local die = 2;
 x = 2;
+x++;
 print(typeof(x));
+print--;
 ::print(::typeof(::x));
 function foo() {
     function qq(bar, qq) {
@@ -8,12 +10,16 @@ function foo() {
         return qq;
     }
     function foo(bar,takos, foo, print) {
+        takos--;
         local foo = 2;
         return bar + foo;
         function h() {
             return bar + takos;
         }
+        ::print--;
     }
+    local foo++;
+    local x++;
     function foo() {}
     mhtsos = 2 + 5 * 3;
     {
@@ -28,6 +34,7 @@ function foo() {
         local f = (function(){return x; });
     }
 }
+++foo;
 local foo = 10;
 gia_ela = (function() {return 1;});
 lel = print();
