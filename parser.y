@@ -127,16 +127,16 @@
 program:    stmt_list;
 
 stmt:       expr SEMICOLON
-            | ifstmt
-            | whilestmt
-            | forstmt
-            | returnstmt
-            | BREAK SEMICOLON       { if (loop_counter == 0) yyerror("Error: Usage of break outside of loop"); }
-            | CONTINUE SEMICOLON    { if (loop_counter == 0) yyerror("Error: Usage of continue outside of loop"); }
-            | block
-            | funcdef
-            | SEMICOLON
-            | comment
+            | ifstmt                {printf("ifstmt\n");}
+            | whilestmt             {printf("whilestmt\n");}
+            | forstmt               {printf("forstmt\n");}
+            | returnstmt            {printf("returnstmt\n");}
+            | BREAK SEMICOLON       {printf("BREAK SEMICOLON\n"); if (loop_counter == 0) yyerror("Error: Usage of break outside of loop"); }
+            | CONTINUE SEMICOLON    {printf("BREAK SEMICOLON\n"); if (loop_counter == 0) yyerror("Error: Usage of continue outside of loop"); }
+            | block                 {printf("block\n");}
+            | funcdef               {printf("funcdef\n");}
+            | SEMICOLON             {printf(";\n");}
+            | comment               {printf("comment\n");}
             ;
 
 
@@ -145,152 +145,153 @@ stmt_list:  stmt stmt_list
             ;
 
 
-expr:       assignexpr          { $$ = $1; }
-            | expr ADD expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr SUB expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr MUL expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr DIV expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr MOD expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr GT expr      { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr GE expr      { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr LT expr      { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr LE expr      { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr EQUAL expr   { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr NEQ expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr AND expr     { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | expr OR expr      { if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
-            | term              { $$ = $1; }
-            | error             { yyclearin; }
+expr:       assignexpr          {printf("assignexpr\n");    $$ = $1; }
+            | expr ADD expr     {printf("expr + expr\n");   if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr SUB expr     {printf("expr - expr\n");   if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr MUL expr     {printf("expr * expr\n");   if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr DIV expr     {printf("expr / expr\n");   if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr MOD expr     {printf("expr %% expr\n");  if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr GT expr      {printf("expr > expr\n");   if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr GE expr      {printf("expr >= expr\n");  if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr LT expr      {printf("expr < expr\n");   if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr LE expr      {printf("expr <= expr\n");  if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr EQUAL expr   {printf("expr == expr\n");  if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr NEQ expr     {printf("expr != expr\n");  if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr AND expr     {printf("expr AND expr\n"); if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | expr OR expr      {printf("expr OR expr\n");  if (is_func($1) || is_func($3)) yyerror("Error: Cannot use arithmetic operators on functions"); }
+            | term              {printf("term\n");          $$ = $1; }
+            | error             {printf("error\n");         yyclearin; }
             ;
 
 
-term:       LPAREN expr RPAREN      { $$ = $2; }
-            | primary               { $$ = $1; }
-            | SUB expr %prec UMINUS { parse_lvalue($2); }
-            | NOT expr              { parse_lvalue($2); }
-            | INC lvalue            { parse_lvalue($2); }
-            | lvalue INC            { parse_lvalue($1); }
-            | DEC lvalue            { parse_lvalue($2); }
-            | lvalue DEC            { parse_lvalue($1); }
+term:       LPAREN expr RPAREN      {printf("(expr)\n"); $$ = $2; }
+            | primary               {printf("primary\n"); $$ = $1; }
+            | SUB expr %prec UMINUS {printf("- expr %%prec UMINUS\n"); parse_lvalue($2); }
+            | NOT expr              {printf("NOT expr\n");   parse_lvalue($2); }
+            | INC lvalue            {printf("++lvalue\n"); parse_lvalue($2); }
+            | lvalue INC            {printf("lvalue++\n"); parse_lvalue($1); }
+            | DEC lvalue            {printf("--lvalue\n"); parse_lvalue($2); }
+            | lvalue DEC            {printf("lvalue--\n"); parse_lvalue($1); }
             ;
 
 
-assignexpr: lvalue ASSIGN expr      { if (is_func($1)) yyerror("Error: Cannot assign to function"); }
+assignexpr: lvalue ASSIGN expr      {printf("lvalue = expr\n"); if (is_func($1)) yyerror("Error: Cannot assign to function"); }
 
 
-primary:    lvalue                  { $$ = $1; }
-            | call                  { $$ = null; }
-            | objectdef             { $$ = null; }
-            | LPAREN funcdef RPAREN { $$ = null; }
-            | const                 { $$ = $1; }
+primary:    lvalue                  {printf("lvalue\n");    $$ = $1; }
+            | call                  {printf("call\n");      $$ = null; }
+            | objectdef             {printf("objectdef\n"); $$ = null; }
+            | LPAREN funcdef RPAREN {printf("(funcdef)\n"); $$ = null; }
+            | const                 {printf("const\n");     $$ = $1; }
             ;
 
 
-lvalue:     ID          { $$ = parse_var($1); }
-            | LOCAL ID  { $$ = parse_local_var($2);  }
-            | SCOPE ID  { $$ = parse_global_var($2);  }
-            | member    { $$ = null; }
+lvalue:     ID          {printf("ID\n"); $$ = parse_var($1); }
+            | LOCAL ID  {printf("LOCAL ID\n"); $$ = parse_local_var($2);  }
+            | SCOPE ID  {printf("::ID\n"); $$ = parse_global_var($2);  }
+            | member    {printf("member\n"); $$ = null; }
             ;
 
 
-member:     lvalue POINT ID                 { if (is_func($1)) yyerror("Error: Cannot access member of function"); }
-            | lvalue LBRACKET expr RBRACKET { if (is_func($1)) yyerror("Error: Cannot access member of function"); }
-            | call POINT ID
-            | call LBRACKET expr RBRACKET
+member:     lvalue POINT ID                 {printf("lvalue.ID\n"); if (is_func($1)) yyerror("Error: Cannot access member of function"); }
+            | lvalue LBRACKET expr RBRACKET {printf("lvalue [expr]\n"); if (is_func($1)) yyerror("Error: Cannot access member of function"); }
+            | call POINT ID                 {printf("call.ID\n");}
+            | call LBRACKET expr RBRACKET   {printf("call[expr]\n");}
             ;
 
 
-call:       call LPAREN elist RPAREN
-            | lvalue callsuffix
-            | LPAREN funcdef RPAREN LPAREN elist RPAREN { $$ = null; }
+call:       call LPAREN elist RPAREN                    {printf("call(elist)\n");}
+            | lvalue callsuffix                         {printf("lvalue callsuffix\n");}
+            | LPAREN funcdef RPAREN LPAREN elist RPAREN {printf("(funcdef) (elist)\n"); $$ = null; }
             ;
 
 
-callsuffix: normcall
-            | methodcall
+callsuffix: normcall     {printf("normcall\n");}
+            | methodcall {printf("methodcall\n");}
             ;
 
 
-normcall:   LPAREN elist RPAREN;
+normcall:   LPAREN elist RPAREN {printf("(elist)\n");};
 
 
-methodcall: RANGE ID LPAREN elist RPAREN;
+methodcall: RANGE ID LPAREN elist RPAREN {printf("..ID(elist)\n");};
 
 
-elist:      expr commaexpr
+elist:      expr commaexpr {printf("expr commaexpr\n");}
             | {$$ = null;}
             ;
 
 
-commaexpr:  COMMA expr commaexpr
+commaexpr:  COMMA expr commaexpr {printf(", expr commaexpr\n");}
             |
             ;
 
 
-objectdef:  LBRACKET elist RBRACKET     { $$ = null; }
-            | LBRACKET indexed RBRACKET { $$ = null; }
+objectdef:  LBRACKET elist RBRACKET     {printf("[elist]\n");   $$ = null; }
+            | LBRACKET indexed RBRACKET {printf("[indexed]\n"); $$ = null; }
             ;
 
 
-indexed:    indexelem indexelemlist
+indexed:    indexelem indexelemlist {printf("indexelem indexelemlist\n");}
             ;
 
 
-indexelemlist:  COMMA indexelem indexelemlist
+indexelemlist:  COMMA indexelem indexelemlist {printf(", indexelem\n");}
                 |
                 ;
 
 
-indexelem:  LCURLY expr COLON expr RCURLY;
-
-
-funcdef: FUNCTION ID { parse_function($2); } LPAREN idlist RPAREN block         { funcdef_counter--; }
-         | FUNCTION  { parse_anonymous_function(); } LPAREN idlist RPAREN block { funcdef_counter--; }
-         ;
-
-
-block: LCURLY { scope++; } stmt_list RCURLY { hide_scope(scope--); }
-       | LCURLY RCURLY
-       ;
-
-
-const:      NUMBER      { $$ = new_lvalue($1, 0, null, null); }
-            | STRING    { $$ = new_lvalue(0, 0, $1, null); }
-            | NIL       { $$ = null; }
-            | TRUE      { $$ = null; }
-            | FALSE     { $$ = null; }
-            | REAL      { $$ = new_lvalue(0, $1, null, null); }
+indexelem:  LCURLY expr COLON expr RCURLY {printf("{expr:expr}\n");}
             ;
 
 
-idlist: ID { $<exprNode>$ = parse_first_args($1); } commaidlist
+funcdef: FUNCTION ID { parse_function($2); } LPAREN idlist RPAREN block         {printf("FUNCTION ID(idlist) block\n"); funcdef_counter--; }
+         | FUNCTION  { parse_anonymous_function(); } LPAREN idlist RPAREN block {printf("FUNCTION (idlist) block\n"); funcdef_counter--; }
+         ;
+
+
+block: LCURLY { scope++; } stmt_list RCURLY {printf("{stmtlist}\n"); hide_scope(scope--); }
+       | LCURLY RCURLY                      {printf("{}\n");}
+       ;
+
+
+const:      NUMBER      {printf("NUMBER\n"); $$ = new_lvalue($1, 0, null, null); }
+            | STRING    {printf("STRING\n"); $$ = new_lvalue(0, 0, $1, null); }
+            | NIL       {printf("NIL\n");    $$ = null; }
+            | TRUE      {printf("TRUE\n");   $$ = null; }
+            | FALSE     {printf("FALSE\n");  $$ = null; }
+            | REAL      {printf("REAL\n");   $$ = new_lvalue(0, $1, null, null); }
+            ;
+
+
+idlist: ID { $<exprNode>$ = parse_first_args($1); } commaidlist {printf("ID commaidlist\n");}
         |
         ;
 
 
-commaidlist: COMMA ID { $<exprNode>$ = parse_rest_args($2); } commaidlist
+commaidlist: COMMA ID { $<exprNode>$ = parse_rest_args($2); } commaidlist {printf(", ID commaidlist\n");}
              |
              ;
 
 
-ifstmt: IF LPAREN expr RPAREN stmt
-        | IF LPAREN expr RPAREN stmt ELSE stmt
+ifstmt: IF LPAREN expr RPAREN stmt             {printf("IF (expr) stmt\n");}
+        | IF LPAREN expr RPAREN stmt ELSE stmt {printf("IF (expr) stmt ELSE stmt\n");}
         ;
 
 
-whilestmt:  WHILE LPAREN expr RPAREN { loop_counter++; } stmt { loop_counter--; };
+whilestmt:  WHILE LPAREN expr RPAREN { loop_counter++; } stmt {printf("WHILE (expr) stmt\n"); loop_counter--; };
 
 
-forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};
+forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {printf("FOR (elist;expr;elist) stmt\n"); loop_counter--;};
 
 
-returnstmt: RETURN expr SEMICOLON   { if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function"); }
-            | RETURN SEMICOLON      { if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function"); }
+returnstmt: RETURN expr SEMICOLON   {printf("RETURN expr\n"); if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function"); }
+            | RETURN SEMICOLON      {printf("RETURN;\n");     if (funcdef_counter == 0) yyerror("Error: Usage of return outside of function"); }
             ;
 
 
-comment: COMMENT
-         | MUL_COMMENT
+comment: COMMENT       {printf("COMMENT\n");}
+         | MUL_COMMENT {printf("MUL_COMMENT\n");}
          ;
 
 
