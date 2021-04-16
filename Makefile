@@ -12,7 +12,11 @@ INCLUDE := -Isrc/
 SRC := $(wildcard src/*.c)
 OBJS := $(SRC:%.c=$(OBJ_DIR)/%.o)
 
-all: parsers directories $(TARGET)
+steps:
+	make parsers
+	make all
+
+all: directories $(TARGET)
 
 parsers:
 	flex analyzer.l
@@ -33,6 +37,8 @@ directories:
 
 clean:
 	rm -rf $(BUILD)
+	rm src/analyzer.*
+	rm src/parser.*
 
 run:
 	$(BUILD)/$(TARGET) $(ARGS)

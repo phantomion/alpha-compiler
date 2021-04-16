@@ -24,6 +24,9 @@ function foo() {
     mhtsos = 2 + 5 * 3;
     {
         local foo = [{foo: [{foo:foo}]}];
+        function yes(sad) {
+            local d = 10;
+        }
         foo.foo..foo(::foo);
     }
     x = (function() {});

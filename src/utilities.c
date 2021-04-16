@@ -38,7 +38,8 @@ char* itoa(int val) {
 
 
 int check_for_libfunc(const char* name) {
-    for(int i = 0; i < 12; i++)
+    int i;
+    for(i = 0; i < 12; i++)
         if(strcmp(name, libfuncs[i]) == 0)
             return 1;
     return 0;
@@ -159,7 +160,8 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
         else if (type == 2) {
 
             if (symtable_lookup(name, 3)) return FORMAL_ARGUMENT;
-            for (int i = scope; i > 0; i--) {
+            int i;
+            for (i = scope; i > 0; i--) {
                 if (scope_contains(name, i)) {
                     if (symtable_lookup(name, 4)) return USER_FUNC;
                     if (symtable_lookup(name, 5)) return LIB_FUNC;
@@ -252,7 +254,8 @@ int symtable_lookup(const char* name, enum SymbolType type) {
 
 
 void initialize_libfuncs() {
-    for (int i = 0; i < 12; i++) {
+    int i;
+    for (i = 0; i < 12; i++) {
         Function* func = malloc(sizeof(Function));
         func->name = libfuncs[i];
         func->scope = 0;
