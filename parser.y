@@ -1,5 +1,8 @@
 %{
     #include "utilities.h"
+    #include "icode.h"
+    #include "parser.h"
+    #include "manager.h"
 
     int yyerror(char* message);
     int yylex();
@@ -13,21 +16,12 @@
     extern int funcdef_counter;
     extern int anonymous_functions;
     extern int loop_counter;
+    extern int icode_phase;
 
     extern char* libfuncs[];
 
-    extern Function* last_function;
-    extern SymbolTableEntry* symtable[MAX];
-    extern SymbolTableEntry* scope_link[MAX];
-
-    Lvalue* parse_var(char* id);
-    Lvalue* parse_local_var(char* id);
-    Lvalue* parse_global_var(char* id);
-    void parse_function(char* id);
-    void parse_anonymous_function();
-    Lvalue* parse_first_args(char* id);
-    Lvalue* parse_rest_args(char* id);
-    void parse_lvalue(Lvalue* id);
+    extern symbol* symtable[MAX];
+    extern symbol* scope_link[MAX];
 
 %}
 
@@ -38,7 +32,7 @@
     int intVal;
     char* strVal;
     double doubleVal;
-    struct Lvalue* exprNode;
+    struct expr* exprNode;
 }
 
 %type <exprNode> lvalue
@@ -126,179 +120,180 @@
 
 program:    stmt_list;
 
-stmt:       expr SEMICOLON          {printf("stmt <- expr ;\n");}
-            | ifstmt                {printf("stmt <- ifstmt\n");}
-            | whilestmt             {printf("stmt <- whilestmt\n");}
-            | forstmt               {printf("stmt <- forstmt\n");}
-            | returnstmt            {printf("stmt <- returnstmt\n");}
-            | BREAK SEMICOLON       {printf("stmt <- BREAK SEMICOLON\n"); if (loop_counter == 0) yyerror("Usage of break outside of loop"); }
-            | CONTINUE SEMICOLON    {printf("stmt <- BREAK SEMICOLON\n"); if (loop_counter == 0) yyerror("Usage of continue outside of loop"); }
-            | block                 {printf("stmt <- block\n");}
-            | funcdef               {printf("stmt <- funcdef\n");}
-            | SEMICOLON             {printf("stmt <- ;\n");}
-            | comment               {printf("stmt <- comment\n");}
+stmt:       expr SEMICOLON
+            | ifstmt
+            | whilestmt
+            | forstmt
+            | returnstmt
+            | BREAK SEMICOLON       {if (loop_counter == 0) yyerror("Usage of break outside of loop"); }
+            | CONTINUE SEMICOLON    {if (loop_counter == 0) yyerror("Usage of continue outside of loop"); }
+            | block
+            | funcdef
+            | SEMICOLON
+            | comment
             ;
 
 
-stmt_list:  stmt stmt_list {printf("stmt_list <- stmt stmt_list\n");}
+stmt_list:  stmt stmt_list
             |
             ;
 
 
-expr:       assignexpr          {printf("expr <- assignexpr\n"); $$ = $1; }
-            | expr ADD expr     {printf("expr <- expr + expr\n"); }
-            | expr SUB expr     {printf("expr <- expr - expr\n"); }
-            | expr MUL expr     {printf("expr <- expr * expr\n"); }
-            | expr DIV expr     {printf("expr <- expr / expr\n"); }
-            | expr MOD expr     {printf("expr <- expr %% expr\n"); }
-            | expr GT expr      {printf("expr <- expr > expr\n");  }
-            | expr GE expr      {printf("expr <- expr >= expr\n"); }
-            | expr LT expr      {printf("expr <- expr < expr\n");  }
-            | expr LE expr      {printf("expr <- expr <= expr\n"); }
-            | expr EQUAL expr   {printf("expr <- expr == expr\n"); }
-            | expr NEQ expr     {printf("expr <- expr != expr\n"); }
-            | expr AND expr     {printf("expr <- expr AND expr\n"); }
-            | expr OR expr      {printf("expr <- expr OR expr\n"); }
-            | term              {printf("expr <- term\n"); $$ = $1; }
+expr:       assignexpr          {$$ = $1; }
+            | expr ADD expr
+            | expr SUB expr
+            | expr MUL expr
+            | expr DIV expr
+            | expr MOD expr
+            | expr GT expr
+            | expr GE expr
+            | expr LT expr
+            | expr LE expr
+            | expr EQUAL expr
+            | expr NEQ expr
+            | expr AND expr
+            | expr OR expr
+            | term              {$$ = $1; }
             | error             {yyclearin;}
             ;
 
 
-term:       LPAREN expr RPAREN      {printf("term <- ( expr )\n"); $$ = $2; }
-            | primary               {printf("term <- primary\n"); $$ = $1; }
-            | SUB expr %prec UMINUS {printf("term <- - expr\n"); parse_lvalue($2); }
-            | NOT expr              {printf("term <- NOT expr\n"); parse_lvalue($2); }
-            | INC lvalue            {printf("term <- ++lvalue\n"); parse_lvalue($2); }
-            | lvalue INC            {printf("term <- lvalue++\n"); parse_lvalue($1); }
-            | DEC lvalue            {printf("term <- --lvalue\n"); parse_lvalue($2); }
-            | lvalue DEC            {printf("term <- lvalue--\n"); parse_lvalue($1); }
+term:       LPAREN expr RPAREN      {$$ = $2; }
+            | primary               {$$ = $1; }
+            | SUB expr %prec UMINUS {manage_lvalue($2); }
+            | NOT expr              {manage_lvalue($2); }
+            | INC lvalue            {manage_lvalue($2); }
+            | lvalue INC            {manage_lvalue($1); }
+            | DEC lvalue            {manage_lvalue($2); }
+            | lvalue DEC            {manage_lvalue($1); }
             ;
 
 
-assignexpr: lvalue ASSIGN expr      {printf("assignexpr <- lvalue = expr\n"); if (is_func($1)) yyerror("Cannot assign to function"); }
+assignexpr: lvalue ASSIGN expr      {if (is_func($1)) yyerror("Cannot assign to function"); }
 
 
-primary:    lvalue                  {printf("primary <- lvalue\n"); $$ = $1; }
-            | call                  {printf("primary <- call\n"); $$ = null; }
-            | objectdef             {printf("primary <- objectdef\n"); $$ = null; }
-            | LPAREN funcdef RPAREN {printf("primary <- ( funcdef )\n"); $$ = null; }
-            | const                 {printf("primary <- const\n"); $$ = $1; }
+primary:    lvalue                  {$$ = $1; }
+            | call                  {$$ = null; }
+            | objectdef             {$$ = null; }
+            | LPAREN funcdef RPAREN {$$ = null; }
+            | const                 {$$ = $1; }
             ;
 
 
-lvalue:     ID          {printf("lvalue <- ID\n"); $$ = parse_var($1); }
-            | LOCAL ID  {printf("lvalue <- LOCAL ID\n"); $$ = parse_local_var($2);  }
-            | SCOPE ID  {printf("lvalue <- ::ID\n"); $$ = parse_global_var($2);  }
-            | member    {printf("lvalue <- member\n"); $$ = null; }
+lvalue:     ID          {$$ = manage_var($1); }
+            | LOCAL ID  {$$ = manage_local_var($2);  }
+            | SCOPE ID  {$$ = manage_global_var($2);  }
+            | member    {$$ = null; }
             ;
 
 
-member:     lvalue POINT ID                 {printf("member <- lvalue.ID\n"); if (is_func($1)) yyerror("Cannot access member of function"); }
-            | lvalue LBRACKET expr RBRACKET {printf("member <- lvalue [expr]\n"); if (is_func($1)) yyerror("Cannot access member of function"); }
-            | call POINT ID                 {printf("member <- call.ID\n");}
-            | call LBRACKET expr RBRACKET   {printf("member <- call[expr]\n");}
+member:     lvalue POINT ID                 {if (is_func($1)) yyerror("Cannot access member of function"); }
+            | lvalue LBRACKET expr RBRACKET {if (is_func($1)) yyerror("Cannot access member of function"); }
+            | call POINT ID
+            | call LBRACKET expr RBRACKET
             ;
 
 
-call:       call LPAREN elist RPAREN                    {printf("call <- call(elist)\n");}
-            | lvalue callsuffix                         {printf("call <- lvalue callsuffix\n");}
-            | LPAREN funcdef RPAREN LPAREN elist RPAREN {printf("call <- (funcdef) (elist)\n"); $$ = null; }
+call:       call LPAREN elist RPAREN
+            | lvalue callsuffix
+            | LPAREN funcdef RPAREN LPAREN elist RPAREN {$$ = null; }
             ;
 
 
-callsuffix: normcall     {printf("callsuffix <- normcall\n");}
-            | methodcall {printf("callsuffix <- methodcall\n");}
+callsuffix: normcall
+            | methodcall
             ;
 
 
-normcall:   LPAREN elist RPAREN {printf("normcall <- (elist)\n");};
+normcall:   LPAREN elist RPAREN
 
 
-methodcall: RANGE ID LPAREN elist RPAREN {printf("methodcall <- ..ID(elist)\n");};
+methodcall: RANGE ID LPAREN elist RPAREN
 
 
-elist:      expr commaexpr {printf("elist <- expr commaexpr\n");}
+elist:      expr commaexpr
             | {$$ = null;}
             ;
 
 
-commaexpr:  COMMA expr commaexpr {printf("commaexpr <- , expr commaexpr\n");}
+commaexpr:  COMMA expr commaexpr
             |
             ;
 
 
-objectdef:  LBRACKET elist RBRACKET     {printf("objectdef <- [elist]\n"); $$ = null; }
-            | LBRACKET indexed RBRACKET {printf("objectdef <- [indexed]\n"); $$ = null; }
+objectdef:  LBRACKET elist RBRACKET     {$$ = null; }
+            | LBRACKET indexed RBRACKET {$$ = null; }
             ;
 
 
-indexed:    indexelem indexelemlist {printf("indexed <- indexelem indexelemlist\n");}
+indexed:    indexelem indexelemlist
             ;
 
 
-indexelemlist:  COMMA indexelem indexelemlist {printf("indexelemlist <- , indexelem\n");}
+indexelemlist:  COMMA indexelem indexelemlist
                 |
                 ;
 
 
-indexelem:  LCURLY expr COLON expr RCURLY {printf("indexelem <- {expr:expr}\n");}
+indexelem:  LCURLY expr COLON expr RCURLY
             ;
 
 
-funcdef: FUNCTION ID { parse_function($2); } LPAREN idlist RPAREN block         {printf("funcdef <- FUNCTION ID(idlist) block\n"); funcdef_counter--; }
-         | FUNCTION  { parse_anonymous_function(); } LPAREN idlist RPAREN block {printf("funcdef <- FUNCTION (idlist) block\n"); funcdef_counter--; }
+funcdef: FUNCTION ID { manage_function($2); } LPAREN idlist RPAREN block         {funcdef_counter--; }
+         | FUNCTION  { manage_anonymous_function(); } LPAREN idlist RPAREN block {funcdef_counter--; }
          ;
 
 
-block: LCURLY { scope++; } stmt_list RCURLY {printf("block <- {stmtlist}\n"); hide_scope(scope--); }
-       | LCURLY RCURLY                      {printf("block <- {}\n");}
+block: LCURLY { scope++; } stmt_list RCURLY {hide_scope(scope--); }
+       | LCURLY RCURLY
        ;
 
 
-const:      NUMBER      {printf("const <- NUMBER\n"); $$ = new_lvalue($1, 0, null, null); }
-            | STRING    {printf("const <- STRING\n"); $$ = new_lvalue(0, 0, $1, null); }
-            | NIL       {printf("const <- NIL\n"); $$ = null; }
-            | TRUE      {printf("const <- TRUE\n"); $$ = null; }
-            | FALSE     {printf("const <- FALSE\n"); $$ = null; }
-            | REAL      {printf("const <- REAL\n"); $$ = new_lvalue(0, $1, null, null); }
+const:      NUMBER      {$$ = null; }
+            | STRING    {$$ = newexpr_conststring($1); }
+            | NIL       {$$ = null; }
+            | TRUE      {$$ = null; }
+            | FALSE     {$$ = null; }
+            | REAL      {$$ = null; }
             ;
 
 
-idlist: ID { $<exprNode>$ = parse_first_args($1); } commaidlist {printf("idlist <- ID commaidlist\n");}
+idlist: ID { $<exprNode>$ = manage_args($1); } commaidlist
         |
         ;
 
 
-commaidlist: COMMA ID { $<exprNode>$ = parse_rest_args($2); } commaidlist {printf("commaidlist <- , ID commaidlist\n");}
+commaidlist: COMMA ID { $<exprNode>$ = manage_args($2); } commaidlist
              |
              ;
 
 
-ifstmt: IF LPAREN expr RPAREN stmt             {printf("ifstmt <- IF (expr) stmt\n");}
-        | IF LPAREN expr RPAREN stmt ELSE stmt {printf("ifstmt <- IF (expr) stmt ELSE stmt\n");}
+ifstmt: IF LPAREN expr RPAREN stmt
+        | IF LPAREN expr RPAREN stmt ELSE stmt
         ;
 
 
-whilestmt:  WHILE LPAREN expr RPAREN { loop_counter++; } stmt {printf("whilestmt <- WHILE (expr) stmt\n"); loop_counter--; };
+whilestmt:  WHILE LPAREN expr RPAREN { loop_counter++; } stmt {loop_counter--; };
 
 
-forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {printf("forstmt <- FOR (elist;expr;elist) stmt\n"); loop_counter--;};
+forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};
 
 
-returnstmt: RETURN expr SEMICOLON   {printf("returnstmt <- RETURN expr\n"); if (funcdef_counter == 0) yyerror("Usage of return outside of function"); }
-            | RETURN SEMICOLON      {printf("returnstmt <- RETURN;\n");     if (funcdef_counter == 0) yyerror("Usage of return outside of function"); }
+returnstmt: RETURN expr SEMICOLON   {if (funcdef_counter == 0) yyerror("Usage of return outside of function"); }
+            | RETURN SEMICOLON      {if (funcdef_counter == 0) yyerror("Usage of return outside of function"); }
             ;
 
 
-comment: COMMENT       {printf("comment <- COMMENT\n");}
-         | MUL_COMMENT {printf("comment <- MUL_COMMENT\n");}
+comment: COMMENT
+         | MUL_COMMENT
          ;
 
 
 %%
 
 int yyerror(char* message) {
-    fprintf(yyout,"\x1b[31mError:\x1b[0m %s at token %s line %d\n", message, yytext, yylineno);
+    icode_phase = 0;
+    fprintf(yyout, COLOR_RED"Error:"COLOR_RESET" %s at token %s line %d\n", message, yytext, yylineno);
     return 1;
 }
 
@@ -307,172 +302,19 @@ void print_scopes() {
     int i;
     for(i = 0; i < MAX; i++){
 
-        SymbolTableEntry* curr = scope_link[i];
+        symbol* curr = scope_link[i];
         if (!curr) break;
         fprintf(yyout, "\n--------------- Scope #%d ---------------\n", i);
 
         while(curr){
             char* type = get_type(curr->type);
 
-            if(curr->varVal) {
-                fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d)\n", curr->varVal->name, type, curr->varVal->line, curr->varVal->scope);
-            }
-            else {
-                if (curr->funcVal->args)
-                    fprintf(yyout, "\"%s\" { args: %s} [%s] (line %d) (scope %d)\n", curr->funcVal->name, curr->funcVal->args, type, curr->funcVal->line, curr->funcVal->scope);
-                else
-                    fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d)\n", curr->funcVal->name, type, curr->funcVal->line, curr->funcVal->scope);
-            }
+            fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d)\n", curr->name, type, curr->line, curr->scope);
             curr = curr->next_in_scope;
         }
     }
 }
 
-
-void parse_lvalue(Lvalue* id) {
-    if (is_func(id)) yyerror("Cannot use arithmetic operators on functions");
-}
-
-
-Lvalue* parse_global_var(char* id) {
-    if (!scope_contains(id, 0)) {
-        yyerror("Global symbol not found");
-        return null;
-    }
-
-    return new_lvalue(0, 0, null, scope_get(id, 0));
-}
-
-
-Lvalue* parse_var(char *id) {
-
-    Variable* var = malloc(sizeof(struct Variable));
-    var->name = id;
-    var->line = yylineno;
-    var->scope = scope;
-    int code = symtable_insert(var, null, 2);
-
-    if (code == NOT_ACCESSIBLE) {
-        yyerror("Symbol not accessible");
-        return null;
-    }
-    else if (code == VARS) {
-        if (symtable_get(id, 2)) {
-            return new_lvalue(0, 0, null, symtable_get(id, 2));
-        }
-        if (symtable_get(id, 1)) {
-            return new_lvalue(0, 0, null, symtable_get(id, 1));
-        }
-    }
-    else if (code == FORMAL_ARGUMENT) {
-        return new_lvalue(0, 0, null, symtable_get(id, 3));
-    }
-    else if (code == USER_FUNC) {
-        return new_lvalue(0, 0, null, symtable_get(id, 4));
-    }
-    else if (code == LIB_FUNC) {
-        return new_lvalue(0, 0, null, symtable_get(id, 5));
-    }
-    else {
-       return new_lvalue(0, 0, null, scope_get(id, 0));
-    }
-
-    return null;
-}
-
-
-Lvalue* parse_local_var(char *id) {
-
-    Variable* var = malloc(sizeof(struct Variable));
-    var->name = id;
-    var->line = yylineno;
-    var->scope = scope;
-
-    if(scope > 0) {
-        if (symtable_insert(var, null, 1) == LIBFUNC_COLLISION) {
-            yyerror("Trying to shadow library function");
-            return null;
-        }
-    }
-    else {
-        if (symtable_insert(var, null, 0) == LIBFUNC_COLLISION) {
-            yyerror("Trying to shadow library function");
-            return null;
-        }
-    }
-
-    return new_lvalue(0, 0, null, scope_get(id, scope));
-}
-
-
-void parse_function(char *id) {
-
-    Function* func = malloc(sizeof(struct Function));
-    func->name = id;
-    func->scope = scope;
-    func->line = yylineno;
-    func->args = null;
-    funcdef_counter++;
-    last_function = func;
-    int code = symtable_insert(null, func, 4);
-
-    if (code == LIBFUNC_COLLISION) {
-        yyerror("Trying to shadow libfunc");
-    }
-    else if (code == COLLISION) {
-        yyerror("Symbol redefinition");
-    }
-}
-
-
-void parse_anonymous_function() {
-    anonymous_functions++;
-
-    Function* func = malloc(sizeof(struct Function));
-    func->name = malloc(1 + strlen(itoa(anonymous_functions)));
-    strcat(func->name, "$");
-    strcat(func->name, itoa(anonymous_functions));
-    func->scope = scope;
-    func->line = yylineno;
-    func->args = null;
-
-    funcdef_counter++;
-    last_function = func;
-    symtable_insert(null, func, 4);
-}
-
-
-Lvalue* parse_first_args(char *id) {
-
-    Variable* var = malloc(sizeof(struct Variable));
-    var->name = id;
-    var->scope = scope + 1;
-    var->line = yylineno;
-
-    last_function->args = malloc(strlen(id) + 1);
-    strcat(last_function->args, id);
-    strcat(last_function->args, " ");
-    symtable_insert(var, null, 3);
-
-    return new_lvalue(0, 0, null, symtable_get(id, 3));
-}
-
-
-Lvalue* parse_rest_args(char *id) {
-
-    Variable* var = malloc(sizeof(struct Variable));
-    var->name = id;
-    var->scope = scope + 1;
-    var->line = yylineno;
-
-    int prev_args = strlen(last_function->args);
-    last_function->args = realloc(last_function->args, prev_args + strlen(id) + 1);
-    strcat(last_function->args, id);
-    strcat(last_function->args, " ");
-    symtable_insert(var, null, 3);
-
-    return new_lvalue(0, 0, null, symtable_get(id, 3));
-}
 
 
 int main(int argc, char** argv) {

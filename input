@@ -9,7 +9,7 @@ function foo() {
         local print = y;
         return qq;
     }
-    function foo(bar,takos, foo, print) {
+    function foo(bar,takos, takos, print, foo) {
         takos--;
         local foo = 2;
         return bar + foo;

@@ -20,9 +20,8 @@ char* libfuncs[] = {
     "sin"
 };
 
-Function* last_function;
-SymbolTableEntry* symtable[MAX];
-SymbolTableEntry* scope_link[MAX];
+symbol* symtable[MAX];
+symbol* scope_link[MAX];
 
 
 char* itoa(int val) {
@@ -65,20 +64,8 @@ char* get_type(enum SymbolType type) {
 }
 
 
-Lvalue* new_lvalue(int intValue, double doubleValue, char* stringValue, SymbolTableEntry* entry) {
-
-    Lvalue* new = malloc(sizeof(struct Lvalue));
-    new->intValue = intValue;
-    new->doubleValue = doubleValue;
-    new->stringValue = stringValue;
-    new->entry = entry;
-
-    return new;
-}
-
-
 int hide_scope(const unsigned int scope) {
-    SymbolTableEntry* scope_entry = scope_link[scope];
+    symbol* scope_entry = scope_link[scope];
 
     while(scope_entry) {
         scope_entry->isActive = 0;
@@ -90,10 +77,10 @@ int hide_scope(const unsigned int scope) {
 
 
 int scope_contains(const char* name, const unsigned int scope) {
-    SymbolTableEntry* scope_entry = scope_link[scope];
+    symbol* scope_entry = scope_link[scope];
 
     while(scope_entry) {
-        const char* e_name = scope_entry->varVal ? scope_entry->varVal->name : scope_entry->funcVal->name;
+        const char* e_name = scope_entry->name;
 
         if(strcmp(name, e_name) == 0 && scope_entry->isActive)
             return 1;
@@ -105,12 +92,12 @@ int scope_contains(const char* name, const unsigned int scope) {
 }
 
 
-SymbolTableEntry* scope_get(const char* name, const unsigned int scope) {
+symbol* scope_get(const char* name, const unsigned int scope) {
 
-    SymbolTableEntry* scope_entry = scope_link[scope];
+    symbol* scope_entry = scope_link[scope];
 
     while(scope_entry) {
-        const char* e_name = scope_entry->varVal ? scope_entry->varVal->name : scope_entry->funcVal->name;
+        const char* e_name = scope_entry->name;
 
         if(strcmp(name, e_name) == 0 && scope_entry->isActive)
             return scope_entry;
@@ -133,20 +120,17 @@ unsigned int symtable_hash(const char *pcKey) {
 }
 
 
-int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
-
-    const char* name = var ? var->name : func->name;
+int symtable_insert(const char* name, enum SymbolType type) {
     unsigned int hash = symtable_hash(name);
 
-    SymbolTableEntry* table_entry = symtable[hash];
-    SymbolTableEntry* scope_entry = scope_link[var ? var->scope : func->scope];
-    SymbolTableEntry* table_prev = null;
-    SymbolTableEntry* scope_prev = null;
-    SymbolTableEntry* new;
+    symbol* table_entry = symtable[hash];
+    symbol* scope_entry = scope_link[type == 3 ? scope + 1 : scope];
+    symbol* table_prev = null;
+    symbol* scope_prev = null;
+    symbol* new;
 
     while(table_entry) {
 
-        unsigned int scope = var ? var->scope : func->scope;
         if(type == 0){
             if(scope_contains(name, 0))
                 return 0;
@@ -172,8 +156,9 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
             if (scope_contains(name, 0)) return 1;
         }
         else if (type == 3) {
-            if (scope_contains(name, scope - 1)) return 0;
-            if (symtable_lookup(name, 5)) return 0;
+            if (scope_contains(name, scope)) return COLLISION;
+            if (scope_contains(name, scope + 1)) return FORMAL_COLLISION;
+            if (symtable_lookup(name, 5)) return LIBFUNC_COLLISION;
         }
         else if (type == 4) {
             if (scope_contains(name, scope))
@@ -191,10 +176,12 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
         scope_entry = scope_entry->next_in_scope;
     }
 
-    new = malloc(sizeof(struct SymbolTableEntry));
+    new = malloc(sizeof(struct symbol));
     new->isActive = 1;
-    new->varVal = var;
-    new->funcVal = func;
+    new->name = strdup(name);
+    if (type == 3) new->scope = scope + 1;
+    else new->scope = scope;
+    new->line = type == 5 ? 0 : yylineno;
     new->type = type;
     new->next = null;
     new->next_in_scope = null;
@@ -203,27 +190,21 @@ int symtable_insert(Variable* var, Function* func, enum SymbolType type) {
     else symtable[hash] = new;
 
     if   (scope_prev) scope_prev->next_in_scope = new;
-    else scope_link[var ? var->scope : func->scope] = new;
+    else scope_link[type == 3 ? scope + 1 : scope] = new;
 
     return 1;
 }
 
 
-SymbolTableEntry* symtable_get(const char* name, enum SymbolType type) {
+symbol* symtable_get(const char* name, enum SymbolType type) {
 
     unsigned int hash = symtable_hash(name);
-    SymbolTableEntry* table_entry = symtable[hash];
+    symbol* table_entry = symtable[hash];
 
     while(table_entry) {
-        if (table_entry->varVal) {
-            if(strcmp(name, table_entry->varVal->name) == 0 && type == table_entry->type && table_entry->isActive)
-                return table_entry;
+        if(strcmp(name, table_entry->name) == 0 && type == table_entry->type && table_entry->isActive) {
+            return table_entry;
         }
-        else if (table_entry->funcVal) {
-            if(strcmp(name, table_entry->funcVal->name) == 0 && type == table_entry->type && table_entry->isActive)
-                return table_entry;
-        }
-
         table_entry = table_entry->next;
     }
 
@@ -234,18 +215,12 @@ SymbolTableEntry* symtable_get(const char* name, enum SymbolType type) {
 
 int symtable_lookup(const char* name, enum SymbolType type) {
     unsigned int hash = symtable_hash(name);
-    SymbolTableEntry* table_entry = symtable[hash];
+    symbol* table_entry = symtable[hash];
 
     while(table_entry) {
-        if (table_entry->varVal) {
-            if(strcmp(name, table_entry->varVal->name) == 0 && type == table_entry->type && table_entry->isActive)
-                return 1;
+        if(strcmp(name, table_entry->name) == 0 && type == table_entry->type && table_entry->isActive) {
+            return 1;
         }
-        else if (table_entry->funcVal) {
-            if(strcmp(name, table_entry->funcVal->name) == 0 && type == table_entry->type && table_entry->isActive)
-                return 1;
-        }
-
         table_entry = table_entry->next;
     }
 
@@ -256,17 +231,6 @@ int symtable_lookup(const char* name, enum SymbolType type) {
 void initialize_libfuncs() {
     int i;
     for (i = 0; i < 12; i++) {
-        Function* func = malloc(sizeof(Function));
-        func->name = libfuncs[i];
-        func->scope = 0;
-        func->line = 0;
-        func->args = null;
-        symtable_insert(null, func, 5);
+        symtable_insert(libfuncs[i], 5);
     }
-}
-
-
-int is_func(Lvalue* lvalue) {
-    if (lvalue && lvalue->entry && lvalue->entry->funcVal) return 1;
-    return 0;
 }
