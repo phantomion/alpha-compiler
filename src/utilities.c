@@ -1,9 +1,17 @@
 #include "utilities.h"
+#include <assert.h>
+#include <stdlib.h>
 
 int scope = 0;
 int funcdef_counter = 0;
 int anonymous_functions = 0;
 int loop_counter = 0;
+
+unsigned int programvar_offset = 0;
+unsigned int functionlocal_offset = 0;
+unsigned int formalarg_offset = 0;
+unsigned int scopespace_counter = 1;
+
 
 char* libfuncs[] = {
     "print",
@@ -22,7 +30,74 @@ char* libfuncs[] = {
 
 symbol* symtable[MAX];
 symbol* scope_link[MAX];
+functionoffset_queue* queue = null;
 
+void reset_formalarg_offset() { formalarg_offset = 0; }
+void reset_functionlocal_offset() {
+    int offset = function_dequeue();
+    if (offset == -1) {
+        functionlocal_offset = 0;
+    }
+    else {
+        functionlocal_offset = offset;
+    }
+}
+
+void save_functionlocal_offset() {
+    if (funcdef_counter > 0) {
+        function_enqueue(functionlocal_offset);
+    }
+    functionlocal_offset = 0;
+    enter_scopespace();
+}
+
+enum scopespace_t currscopespace() {
+    if (scopespace_counter == 1) {
+        return programvar;
+    }
+    else if (scopespace_counter % 2 == 0) {
+        return formalarg;
+    }
+    else {
+        return functionlocal;
+    }
+}
+
+unsigned currscope_offset() {
+    switch (currscopespace()) {
+        case programvar:
+            return programvar_offset;
+        case functionlocal:
+            return functionlocal_offset;
+        case formalarg:
+            return formalarg_offset;
+        default:
+            assert(0);
+    }
+}
+
+void inc_currscope_offset() {
+    switch (currscopespace()) {
+        case programvar:
+            programvar_offset++;
+            break;
+        case functionlocal:
+            functionlocal_offset++;
+            break;
+        case formalarg:
+            formalarg_offset++;
+            break;
+        default:
+            assert(0);
+    }
+}
+
+void enter_scopespace() { scopespace_counter++; }
+
+void exit_scopespace() {
+    assert(scopespace_counter > 1);
+    scopespace_counter -= 2;
+}
 
 char* itoa(int val) {
 
@@ -45,12 +120,11 @@ int check_for_libfunc(const char* name) {
 }
 
 
-char* get_type(enum SymbolType type) {
+char* get_type(enum symbol_t type) {
     switch (type) {
         case 0:
             return "global variable";
         case 1:
-            return "local variable";
         case 2:
             return "local variable";
         case 3:
@@ -120,7 +194,7 @@ unsigned int symtable_hash(const char *pcKey) {
 }
 
 
-int symtable_insert(const char* name, enum SymbolType type) {
+int symtable_insert(const char* name, enum symbol_t type) {
     unsigned int hash = symtable_hash(name);
 
     symbol* table_entry = symtable[hash];
@@ -184,6 +258,15 @@ int symtable_insert(const char* name, enum SymbolType type) {
     new->line = type == 5 ? 0 : yylineno;
     new->type = type;
     new->next = null;
+    if (type == 4 || type == 5) {
+        new->space = -1;
+        new->offset = -1;
+    }
+    else {
+        new->space = currscopespace();
+        new->offset = currscope_offset();
+        inc_currscope_offset();
+    }
     new->next_in_scope = null;
 
     if   (table_prev) table_prev->next = new;
@@ -196,7 +279,7 @@ int symtable_insert(const char* name, enum SymbolType type) {
 }
 
 
-symbol* symtable_get(const char* name, enum SymbolType type) {
+symbol* symtable_get(const char* name, enum symbol_t type) {
 
     unsigned int hash = symtable_hash(name);
     symbol* table_entry = symtable[hash];
@@ -213,7 +296,7 @@ symbol* symtable_get(const char* name, enum SymbolType type) {
 }
 
 
-int symtable_lookup(const char* name, enum SymbolType type) {
+int symtable_lookup(const char* name, enum symbol_t type) {
     unsigned int hash = symtable_hash(name);
     symbol* table_entry = symtable[hash];
 
@@ -233,4 +316,26 @@ void initialize_libfuncs() {
     for (i = 0; i < 12; i++) {
         symtable_insert(libfuncs[i], 5);
     }
+}
+
+void function_enqueue(int offset) {
+    if (!queue) {
+        queue = malloc(sizeof(functionoffset_queue));
+        queue->localfunction_offset = offset;
+        queue->next = null;
+        return;
+    }
+    functionoffset_queue* new = malloc(sizeof(functionlocal_offset));
+    new->localfunction_offset = offset;
+    new->next = queue;
+    queue = new;
+}
+
+int function_dequeue() {
+    if (!queue) return -1;
+    functionoffset_queue* deq = queue;
+    queue = queue->next;
+    int offset = deq->localfunction_offset;
+    free(deq);
+    return offset;
 }

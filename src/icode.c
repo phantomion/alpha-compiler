@@ -75,14 +75,8 @@ expr* lvalue_expr(symbol* sym) {
 
     switch (sym->type) {
         case VAR:
-            e->type = var_e;
-            break;
         case LOCALVAR:
-            e->type = var_e;
-            break;
         case GLOBAL:
-            e->type = var_e;
-            break;
         case FORMAL:
             e->type = var_e;
             break;

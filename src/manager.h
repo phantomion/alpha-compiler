@@ -13,6 +13,7 @@ expr* manage_var(char *id);
 expr* manage_local_var(char *id);
 void manage_function(char *id);
 void manage_anonymous_function();
+void manage_function_exit();
 expr* manage_args(char *id);
 expr* manage_real(double val);
 expr* manage_bool(short int val);

@@ -246,8 +246,8 @@ indexelem:  LCURLY expr COLON expr RCURLY
             ;
 
 
-funcdef: FUNCTION ID { manage_function($2); } LPAREN idlist RPAREN block         {funcdef_counter--; }
-         | FUNCTION  { manage_anonymous_function(); } LPAREN idlist RPAREN block {funcdef_counter--; }
+funcdef: FUNCTION ID LPAREN {enter_scopespace();} idlist {manage_function($2);} RPAREN block {manage_function_exit();}
+         | FUNCTION LPAREN {enter_scopespace();} idlist {manage_anonymous_function(); } RPAREN block {manage_function_exit();}
          ;
 
 
@@ -316,7 +316,8 @@ void print_scopes() {
         while(curr){
             char* type = get_type(curr->type);
 
-            fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d)\n", curr->name, type, curr->line, curr->scope);
+            fprintf(yyout, "\"%s\" [%s] (line %d) (scope %d) (offset %d) (scopespace %d)\n",\
+                curr->name, type, curr->line, curr->scope, curr->offset, curr->space);
             curr = curr->next_in_scope;
         }
     }

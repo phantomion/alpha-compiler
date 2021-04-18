@@ -71,7 +71,7 @@ expr* manage_var(char *id) {
 
 expr* manage_local_var(char *id) {
 
-    enum SymbolType type;
+    enum symbol_t type;
     if(scope > 0) {
         type = LOCALVAR;
         if (symtable_insert(id, type) == LIBFUNC_COLLISION) {
@@ -90,7 +90,10 @@ expr* manage_local_var(char *id) {
 
 void manage_function(char *id) {
 
+    save_functionlocal_offset();
     funcdef_counter++;
+    reset_formalarg_offset();
+
     int code = symtable_insert(id, USERFUNC);
 
     if (code == LIBFUNC_COLLISION) {
@@ -104,14 +107,21 @@ void manage_function(char *id) {
 
 void manage_anonymous_function() {
     anonymous_functions++;
+    save_functionlocal_offset();
+    reset_formalarg_offset();
+    funcdef_counter++;
 
     char* name = malloc(1 + strlen(itoa(anonymous_functions)));
     strcat(name, "$");
     strcat(name, itoa(anonymous_functions));
-    funcdef_counter++;
     symtable_insert(name, 4);
 }
 
+void manage_function_exit() {
+    funcdef_counter--;
+    reset_functionlocal_offset();
+    exit_scopespace();
+}
 
 expr* manage_args(char *id) {
     short int code = symtable_insert(id, 3);

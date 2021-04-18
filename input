@@ -5,6 +5,7 @@ print(typeof(x));
 print--;
 ::print(::typeof(::x));
 function foo() {
+    local nauths = true;
     function qq(bar, qq) {
         local print = y;
         return qq;
@@ -12,10 +13,14 @@ function foo() {
     function foo(bar,takos, takos, print, foo) {
         takos--;
         local foo = 2;
+        local loka = 1;
         return bar + foo;
         function h() {
+            local gucci_forema = true;
+            yes = false;
             return bar + takos;
         }
+        local malakas = "nai";
         ::print--;
     }
     local foo++;
