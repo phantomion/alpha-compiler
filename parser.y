@@ -120,7 +120,7 @@
 
 program:    stmt_list;
 
-stmt:       expr SEMICOLON
+stmt:       expr SEMICOLON {reset_temp();}
             | ifstmt
             | whilestmt
             | forstmt

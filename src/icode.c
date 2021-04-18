@@ -1,6 +1,7 @@
 #include "icode.h"
 #include "utilities.h"
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,7 +14,7 @@ int icode_phase = 1;
 char* new_temp_name() {
 
     char* counter = itoa(temp_counter);
-    char* temp = malloc(2 + strlen(counter));
+    char* temp = calloc(1, 2 + strlen(counter));
     strcat(temp, "_t");
     strcat(temp, counter);
 
@@ -28,13 +29,13 @@ symbol* new_temp(){
     char* name = new_temp_name();
     symbol* sym = symtable_get(name, scope);
 
+    temp_counter++;
     if(sym == null) {
         if(symtable_insert(name, LOCALVAR) > 0) {
             return symtable_get(name, scope);
         }
         return null;
     }
-    temp_counter++;
     return sym;
 }
 
