@@ -139,19 +139,12 @@ stmt_list:  stmt stmt_list
             ;
 
 
-expr:       assignexpr          {
-                                    $$ = $1;
-                                    emit(assign, $1, null, $$, curr_quad, yylineno);
-                                }
-            | expr ADD expr     {
-                                    if(is_num($1) && is_num($3)) {
-                                        emit(add, $1, $3, $$, curr_quad, yylineno);
-                                    }
-                                }
-            | expr SUB expr
-            | expr MUL expr
-            | expr DIV expr
-            | expr MOD expr
+expr:       assignexpr          {$$ = $1;}
+            | expr ADD expr     {$$ = manage_add($1, $3);}
+            | expr SUB expr     {$$ = manage_sub($1, $3);}
+            | expr MUL expr     {$$ = manage_mul($1, $3);}
+            | expr DIV expr     {$$ = manage_div($1, $3);}
+            | expr MOD expr     {$$ = manage_mod($1, $3);}
             | expr GT expr
             | expr GE expr
             | expr LT expr
@@ -165,14 +158,14 @@ expr:       assignexpr          {
             ;
 
 
-term:       LPAREN expr RPAREN      {$$ = $2; }
-            | primary               {$$ = $1; }
-            | SUB expr %prec UMINUS {manage_lvalue($2); }
-            | NOT expr              {manage_lvalue($2); }
-            | INC lvalue            {manage_lvalue($2); }
-            | lvalue INC            {manage_lvalue($1); }
-            | DEC lvalue            {manage_lvalue($2); }
-            | lvalue DEC            {manage_lvalue($1); }
+term:       LPAREN expr RPAREN      {$$ = $2;}
+            | primary               {$$ = $1;}
+            | SUB expr %prec UMINUS {manage_uminus($2);}
+            | NOT expr              {manage_not($2);}
+            | INC lvalue            {manage_pre_inc($2);}
+            | lvalue INC            {manage_post_inc($1);}
+            | DEC lvalue            {manage_pre_dec($2);}
+            | lvalue DEC            {manage_post_dec($1);}
             ;
 
 

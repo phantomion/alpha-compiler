@@ -117,11 +117,182 @@ void manage_anonymous_function() {
     symtable_insert(name, 4);
 }
 
+
 void manage_function_exit() {
     funcdef_counter--;
     reset_functionlocal_offset();
     exit_scopespace();
 }
+
+
+expr* manage_add(expr* arg1, expr* arg2) {
+
+    expr* new = newexpr(arithexpr_e);
+    new->num_const = arg1->num_const + arg2->num_const;
+    new->sym = new_temp();
+
+    emit(add, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_sub(expr* arg1, expr* arg2) {
+
+    expr* new = newexpr(arithexpr_e);
+    new->num_const = arg1->num_const - arg2->num_const;
+    new->sym = new_temp();
+
+    emit(sub, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_mul(expr* arg1, expr* arg2) {
+
+    expr* new = newexpr(arithexpr_e);
+    new->num_const = arg1->num_const * arg2->num_const;
+    new->sym = new_temp();
+
+    emit(mul, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_div(expr* arg1, expr* arg2) {
+
+    expr* new = newexpr(arithexpr_e);
+    new->num_const = arg1->num_const / arg2->num_const;
+    new->sym = new_temp();
+
+    emit(div_i, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_mod(expr* arg1, expr* arg2) {
+
+    expr* new = newexpr(arithexpr_e);
+    new->num_const = (int)arg1->num_const % (int)arg2->num_const;
+    new->sym = new_temp();
+
+    emit(mod, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_uminus(expr* ex) {
+    expr* new = newexpr(arithexpr_e);
+    new->num_const = -(ex->num_const);
+    new->sym = new_temp();
+
+    emit(uminus, ex, null, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_not(expr* ex) {
+    expr* new = newexpr(boolexpr_e);
+    new->bool_const = !(ex->bool_const);
+    new->sym = new_temp();
+
+    emit(not_i, ex, null, new, curr_quad, yylineno);
+    return new;
+}
+
+
+expr* manage_pre_inc(expr* ex) {
+    expr* one = newexpr(constnum_e);
+    one->num_const = 1;
+
+    if(ex->type == tableitem_e) {
+        expr* term = emit_iftableitem(ex);
+
+        emit(add, term, one, term, curr_quad, yylineno);
+        emit(tablesetelem, ex, ex->index, term, curr_quad, yylineno);
+
+        return term;
+    }
+    else {
+        emit(add, ex, one, ex, curr_quad, yylineno);
+
+        expr* term = newexpr(arithexpr_e);
+        term->sym = new_temp();
+
+        emit(assign, ex, null, term, curr_quad, yylineno);
+
+        return term;
+    }
+}
+
+
+expr* manage_post_inc(expr* ex) {
+    expr* term = newexpr(arithexpr_e);
+    term->sym = new_temp();
+
+    expr* one = newexpr(constnum_e);
+    one->num_const = 1;
+
+    if(ex->type == tableitem_e) {
+        expr* val = emit_iftableitem(ex);
+
+        emit(assign, val, null, term, curr_quad, yylineno);
+        emit(add, val, one, val, curr_quad, yylineno);
+        emit(tablesetelem, ex, ex->index, val, curr_quad, yylineno);
+    }
+    else {
+        emit(assign, ex, null, term, curr_quad, yylineno);
+        emit(add, ex, one, ex, curr_quad, yylineno);
+    }
+    return term;
+}
+
+
+expr* manage_pre_dec(expr* ex) {
+    expr* one = newexpr(constnum_e);
+    one->num_const = 1;
+
+    if(ex->type == tableitem_e) {
+        expr* term = emit_iftableitem(ex);
+
+        emit(sub, term, one, term, curr_quad, yylineno);
+        emit(tablesetelem, ex, ex->index, term, curr_quad, yylineno);
+
+        return term;
+    }
+    else {
+        emit(sub, ex, one, ex, curr_quad, yylineno);
+
+        expr* term = newexpr(arithexpr_e);
+        term->sym = new_temp();
+
+        emit(assign, ex, null, term, curr_quad, yylineno);
+
+        return term;
+    }
+}
+
+
+expr* manage_post_dec(expr* ex) {
+    expr* term = newexpr(arithexpr_e);
+    term->sym = new_temp();
+
+    expr* one = newexpr(constnum_e);
+    one->num_const = 1;
+
+    if(ex->type == tableitem_e) {
+        expr* val = emit_iftableitem(ex);
+
+        emit(assign, val, null, term, curr_quad, yylineno);
+        emit(sub, val, one, val, curr_quad, yylineno);
+        emit(tablesetelem, ex, ex->index, val, curr_quad, yylineno);
+    }
+    else {
+        emit(assign, ex, null, term, curr_quad, yylineno);
+        emit(sub, ex, one, ex, curr_quad, yylineno);
+    }
+    return term;
+}
+
 
 expr* manage_args(char *id) {
     short int code = symtable_insert(id, 3);
