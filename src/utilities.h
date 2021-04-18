@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "parser.h"
+
 extern int yylineno;
 extern int scope;
 
@@ -23,7 +24,7 @@ extern int scope;
 #define COLOR_RESET "\x1b[0m"
 
 
-enum SymbolType {
+enum symbol_t {
     GLOBAL,
     LOCALVAR,
     VAR,
@@ -32,30 +33,52 @@ enum SymbolType {
     LIBFUNC
 };
 
+enum scopespace_t {
+    programvar,
+    functionlocal,
+    formalarg
+};
+
 typedef struct symbol {
     char* name;
     unsigned int scope;
     unsigned int line;
+    unsigned int offset;
     short int isActive;
-    enum SymbolType type;
+    enum scopespace_t space;
+    enum symbol_t type;
     struct symbol* next;
     struct symbol* next_in_scope;
 }symbol;
 
+typedef struct functionoffset_queue {
+    int localfunction_offset;
+    struct functionoffset_queue* next;
+}functionoffset_queue;
+
 
 char* itoa(int val);
 int check_for_libfunc(const char* name);
-char* get_type(enum SymbolType type);
+char* get_type(enum symbol_t type);
 
 int hide_scope(const unsigned int scope);
 int scope_contains(const char* name, const unsigned int scope);
 symbol* scope_get(const char* name, const unsigned int scope);
 
 unsigned int symtable_hash(const char *pcKey);
-int symtable_insert(const char* name, enum SymbolType type);
-symbol* symtable_get(const char* name, enum SymbolType type);
-int symtable_lookup(const char* name, enum SymbolType type);
+int symtable_insert(const char* name, enum symbol_t type);
+symbol* symtable_get(const char* name, enum symbol_t type);
+int symtable_lookup(const char* name, enum symbol_t type);
 
 void initialize_libfuncs();
+void enter_scopespace();
+
+void exit_scopespace();
+void reset_formalarg_offset();
+void reset_functionlocal_offset();
+void save_functionlocal_offset();
+
+void function_enqueue(int offset);
+int function_dequeue();
 
 #endif

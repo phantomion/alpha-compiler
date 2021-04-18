@@ -47,14 +47,8 @@ expr* lvalue_expr(symbol* sym) {
 
     switch (sym->type) {
         case VAR:
-            e->type = var_e;
-            break;
         case LOCALVAR:
-            e->type = var_e;
-            break;
         case GLOBAL:
-            e->type = var_e;
-            break;
         case FORMAL:
             e->type = var_e;
             break;
@@ -101,7 +95,6 @@ int is_func(expr* e) {
 
     switch (e->type) {
         case programfunc_e:
-            return 1;
         case libraryfunc_e:
             return 1;
         default:
