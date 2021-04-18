@@ -68,7 +68,7 @@ expr* emit_iftableitem(expr* e);
 int is_func(expr* e);
 int is_num(expr* e);
 symbol* new_temp();
-symbol* new_temp_name();
-symbol* reset_temp();
+char* new_temp_name();
+void reset_temp();
 
 #endif /* ICODE_H */

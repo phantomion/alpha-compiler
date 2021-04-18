@@ -7,13 +7,13 @@
 quad* quads = null;
 unsigned int total = 0;
 unsigned int curr_quad = 0;
-unsigned int temp_counter = 0;
+unsigned int temp_counter = 1;
 int icode_phase = 1;
 
 char* new_temp_name() {
 
     char* counter = itoa(temp_counter);
-    char* temp = malloc(2 + sizeof(counter));
+    char* temp = malloc(2 + strlen(counter));
     strcat(temp, "_t");
     strcat(temp, counter);
 
@@ -21,7 +21,7 @@ char* new_temp_name() {
 }
 
 void reset_temp() {
-    temp_counter = 0;
+    temp_counter = 1;
 }
 
 symbol* new_temp(){
@@ -34,6 +34,7 @@ symbol* new_temp(){
         }
         return null;
     }
+    temp_counter++;
     return sym;
 }
 
