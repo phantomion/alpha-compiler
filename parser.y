@@ -139,10 +139,7 @@ stmt_list:  stmt stmt_list
             ;
 
 
-expr:       assignexpr          {
-                                    $$ = $1;
-                                    emit(assign, $1, null, $$, curr_quad, yylineno);
-                                }
+expr:       assignexpr          {$$ = $1;}
             | expr ADD expr     {
                                     if(is_num($1) && is_num($3)) {
                                         emit(add, $1, $3, $$, curr_quad, yylineno);
@@ -152,14 +149,14 @@ expr:       assignexpr          {
             | expr MUL expr
             | expr DIV expr
             | expr MOD expr
-            | expr GT expr
-            | expr GE expr
-            | expr LT expr
-            | expr LE expr
-            | expr EQUAL expr
-            | expr NEQ expr
-            | expr AND expr
-            | expr OR expr
+            | expr GT expr      {$$ = manage_greater($1, $3);}
+            | expr GE expr      {$$ = manage_greatereq($1, $3);}
+            | expr LT expr      {$$ = manage_less($1, $3);}
+            | expr LE expr      {$$ = manage_lesseq($1, $3);}
+            | expr EQUAL expr   {$$ = manage_eq($1, $3);}
+            | expr NEQ expr     {$$ = manage_neq($1, $3);}
+            | expr AND expr     {$$ = manage_and($1, $3);}
+            | expr OR expr      {$$ = manage_or($1, $3);}
             | term              {$$ = $1; }
             | error             {yyclearin;}
             ;
@@ -187,9 +184,9 @@ primary:    lvalue                  {$$ = $1;}
             ;
 
 
-lvalue:     ID          {$$ = manage_var($1); }
-            | LOCAL ID  {$$ = manage_local_var($2);  }
-            | SCOPE ID  {$$ = manage_global_var($2);  }
+lvalue:     ID          {$$ = manage_var($1);}
+            | LOCAL ID  {$$ = manage_local_var($2);}
+            | SCOPE ID  {$$ = manage_global_var($2);}
             | member    {$$ = null; }
             ;
 
@@ -324,7 +321,6 @@ void print_scopes() {
 }
 
 
-
 int main(int argc, char** argv) {
     if(argc > 1) {
         if(!(yyin = fopen(argv[1], "r"))) {
@@ -342,6 +338,9 @@ int main(int argc, char** argv) {
     initialize_libfuncs();
     yyparse();
     print_scopes();
+    if (icode_phase) {
+        print_quads();
+    }
 
     return 0;
 }

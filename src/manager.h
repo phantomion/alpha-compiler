@@ -21,4 +21,14 @@ expr* manage_nil();
 expr* manage_string(char *val);
 expr* manage_number(int val);
 expr* manage_assignexpr(expr* lvalue, expr* ex);
+expr* manage_logical(expr* arg1, expr* arg2, iopcode op);
+expr* manage_less(expr* arg1, expr* arg2);
+expr* manage_lesseq(expr* arg1, expr* arg2);
+expr* manage_greater(expr* arg1, expr* arg2);
+expr* manage_greatereq(expr* arg1, expr* arg2);
+expr* manage_eq(expr* arg1, expr* arg2);
+expr* manage_neq(expr* arg1, expr* arg2);
+expr* manage_or(expr* arg1, expr* arg2);
+expr* manage_and(expr* arg1, expr* arg2);
+void print_quads();
 #endif /* MANAGER_H */

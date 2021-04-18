@@ -1,6 +1,7 @@
 #include "manager.h"
 #include "icode.h"
 #include "utilities.h"
+#include <stdio.h>
 
 extern int scope;
 extern int funcdef_counter;
@@ -12,6 +13,9 @@ extern int yylineno;
 extern char* yytext;
 extern FILE* yyin;
 extern FILE* yyout;
+
+extern char* opcodes[];
+extern quad* quads;
 
 int yy_alphaerror(char* message) {
     icode_phase = 0;
@@ -61,11 +65,11 @@ expr* manage_var(char *id) {
     else if (code == LIB_FUNC) {
         return lvalue_expr(symtable_get(id, 5));
     }
-    else {
+    else if (code == GLOBAL_VAR) {
         return lvalue_expr(symtable_get(id, 0));
     }
 
-    return null;
+    return lvalue_expr(symtable_get(id, 2));
 }
 
 
@@ -190,9 +194,125 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
 
     expr* new = newexpr(assignexpr_e);
     new->sym = new_temp();
+    new->num_const = ex->num_const;
     new->index = null;
     new->next = null;
 
     emit(assign, lvalue, null, new, curr_quad, yylineno);
     return new;
+}
+
+expr* manage_less(expr* arg1, expr* arg2) {
+
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const < arg2->num_const;
+
+    emit(if_less, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_lesseq(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const <= arg2->num_const;
+
+    emit(if_lesseq, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_greater(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const > arg2->num_const;
+
+    emit(if_greatereq, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_greatereq(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const >= arg2->num_const;
+
+    emit(if_greatereq, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_eq(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const == arg2->num_const;
+
+    emit(if_eq, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_neq(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const != arg2->num_const;
+
+    emit(if_noteq, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_or(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const || arg2->num_const;
+
+    emit(or_i, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+expr* manage_and(expr* arg1, expr* arg2) {
+    expr* new = newexpr(boolexpr_e);
+    new->sym = new_temp();
+    new->bool_const = arg1->num_const && arg2->num_const;
+
+    emit(and_i, arg1, arg2, new, curr_quad, yylineno);
+    return new;
+}
+
+void print_arg(expr* e) {
+    switch (e->type) {
+        case var_e:
+        case programfunc_e:
+        case assignexpr_e:
+        case boolexpr_e:
+        case libraryfunc_e:
+            printf("%s ", e->sym->name);
+            break;
+        case constnum_e:
+            printf("%d ", (int) e->num_const);
+            break;
+        case nil_e:
+            printf("NIL ");
+            break;
+        case constbool_e:
+            printf("%d ", e->bool_const);
+            break;
+        case conststring_e:
+            printf("%s ", e->str_const);
+            break;
+        default:
+            break;
+    }
+}
+
+void print_quads() {
+    int i = 0;
+    for (i = 0; i < curr_quad; i++) {
+        if (!quads[i].result) break;
+        printf("%s ", opcodes[quads[i].op]);
+        printf("%s ", quads[i].result->sym->name);
+        if (quads[i].arg1) {
+            print_arg(quads[i].arg1);
+        }
+        if (quads[i].arg2) {
+            print_arg(quads[i].arg2);
+        }
+        printf("\n");
+    }
 }

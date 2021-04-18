@@ -1,6 +1,6 @@
 CC := gcc
 # add useful flags here
-CFLAGS := -Wall
+CFLAGS := -Wall -g3 -Og
 # change if you don't like the name
 BUILD := ./bin
 # change target to your preference
@@ -39,6 +39,9 @@ clean:
 	rm -rf $(BUILD)
 	rm src/analyzer.*
 	rm src/parser.*
+
+tests:
+	make run ARGS=tests/arith_quads.alpha
 
 run:
 	$(BUILD)/$(TARGET) $(ARGS)
