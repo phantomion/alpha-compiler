@@ -160,12 +160,12 @@ expr:       assignexpr          {$$ = $1;}
 
 term:       LPAREN expr RPAREN      {$$ = $2;}
             | primary               {$$ = $1;}
-            | SUB expr %prec UMINUS {manage_uminus($2);}
-            | NOT expr              {manage_not($2);}
-            | INC lvalue            {manage_pre_inc($2);}
-            | lvalue INC            {manage_post_inc($1);}
-            | DEC lvalue            {manage_pre_dec($2);}
-            | lvalue DEC            {manage_post_dec($1);}
+            | SUB expr %prec UMINUS {$$ = manage_uminus($2);}
+            | NOT expr              {$$ = manage_not($2);}
+            | INC lvalue            {$$ = manage_pre_inc($2);}
+            | lvalue INC            {$$ = manage_post_inc($1);}
+            | DEC lvalue            {$$ = manage_pre_dec($2);}
+            | lvalue DEC            {$$ = manage_post_dec($1);}
             ;
 
 

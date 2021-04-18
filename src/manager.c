@@ -66,7 +66,7 @@ expr* manage_var(char *id) {
         return lvalue_expr(symtable_get(id, 5));
     }
     else if (code == GLOBAL_VAR) {
-        return lvalue_expr(symtable_get(id, 0));
+        return lvalue_expr(scope_get(id, 0));
     }
 
     return lvalue_expr(symtable_get(id, 2));
