@@ -11,6 +11,13 @@ unsigned int curr_quad = 0;
 unsigned int temp_counter = 1;
 int icode_phase = 1;
 
+char* opcodes[] = {
+    "assign", "add", "sub", "mul", "div_i", "mod", "uminus", "and_i", "or_i", "not_i",
+    "if_eq", "if_noteq", "if_lesseq", "if_greatereq", "if_less", "if_greater",
+    "jump", "call", "param", "ret", "getretval", "funcstart", "funcend",
+    "tablecreate", "tablegetelem", "tablesetelem"
+};
+
 char* new_temp_name() {
 
     char* counter = itoa(temp_counter);
@@ -27,12 +34,12 @@ void reset_temp() {
 
 symbol* new_temp(){
     char* name = new_temp_name();
-    symbol* sym = symtable_get(name, scope);
+    symbol* sym = symtable_get(name, LOCALVAR);
 
     temp_counter++;
     if(sym == null) {
         if(symtable_insert(name, LOCALVAR) > 0) {
-            return symtable_get(name, scope);
+            return symtable_get(name, LOCALVAR);
         }
         return null;
     }
@@ -60,6 +67,7 @@ void emit(iopcode op,
     if (curr_quad == total) expand();
 
     quad* p = quads + curr_quad++;
+    p->op = op;
     p->arg1 = arg1;
     p->arg2 = arg2;
     p->result = result;
@@ -69,7 +77,6 @@ void emit(iopcode op,
 
 expr* lvalue_expr(symbol* sym) {
     expr* e = calloc(1, sizeof(expr));
-    e->next = null;
     e->sym = sym;
 
     if(!sym) return e;

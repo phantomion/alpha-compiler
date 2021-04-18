@@ -20,6 +20,7 @@ extern int scope;
 #define VARS 3
 #define USER_FUNC 4
 #define LIB_FUNC 5
+#define GLOBAL_VAR 6
 #define COLOR_RED "\x1b[31m"
 #define COLOR_RESET "\x1b[0m"
 

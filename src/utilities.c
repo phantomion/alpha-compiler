@@ -227,7 +227,7 @@ int symtable_insert(const char* name, enum symbol_t type) {
                     else return NOT_ACCESSIBLE;
                 }
             }
-            if (scope_contains(name, 0)) return 1;
+            if (scope_contains(name, 0)) return GLOBAL_VAR;
         }
         else if (type == 3) {
             if (scope_contains(name, scope)) return COLLISION;
