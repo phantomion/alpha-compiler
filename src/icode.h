@@ -51,7 +51,6 @@ typedef struct quad {
     unsigned int line;
 }quad;
 
-symbol* newtemp();
 
 void expand();
 
@@ -65,8 +64,11 @@ void emit(iopcode op,
 
 expr* lvalue_expr(symbol* sym);
 expr* newexpr(expr_t type);
-expr* newexpr_conststring(char* s);
 expr* emit_iftableitem(expr* e);
 int is_func(expr* e);
+int is_num(expr* e);
+symbol* new_temp();
+symbol* new_temp_name();
+symbol* reset_temp();
 
 #endif /* ICODE_H */

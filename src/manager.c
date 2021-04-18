@@ -128,3 +128,61 @@ expr* manage_args(char *id) {
     return lvalue_expr(symtable_get(id, 3));
 }
 
+
+expr* manage_real(double val) {
+    expr* new = newexpr(constnum_e);
+    new->num_const = val;
+    new->index = null;
+    new->next = null;
+    return new;
+}
+
+
+expr* manage_bool(short int val) {
+    expr* new = newexpr(constbool_e);
+    new->bool_const = val ? true : false;
+    new->index = null;
+    new->next = null;
+    return new;
+}
+
+
+expr* manage_nil() {
+    expr* new = newexpr(nil_e);
+    new->index = null;
+    new->next = null;
+    return new;
+}
+
+
+expr* manage_string(char *val) {
+    expr* e = newexpr(conststring_e);
+    e->str_const = strdup(val);
+    e->index = null;
+    e->next = null;
+    return e;
+}
+
+
+expr* manage_number(int val) {
+    expr* new = newexpr(constnum_e);
+    new->num_const = val;
+    new->index = null;
+    new->next = null;
+    return new;
+}
+
+
+expr* manage_assignexpr(expr* lvalue, expr* ex) {
+    if (is_func(lvalue)) yy_alphaerror("Cannot assign to function");
+
+    emit(assign, ex, null, lvalue, curr_quad, yylineno);
+
+    expr* new = newexpr(assignexpr_e);
+    new->sym = new_temp();
+    new->index = null;
+    new->next = null;
+
+    emit(assign, lvalue, null, new, curr_quad, yylineno);
+    return new;
+}

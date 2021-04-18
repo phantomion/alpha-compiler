@@ -139,8 +139,15 @@ stmt_list:  stmt stmt_list
             ;
 
 
-expr:       assignexpr          {$$ = $1; }
-            | expr ADD expr
+expr:       assignexpr          {
+                                    $$ = $1;
+                                    emit(assign, $1, null, $$, curr_quad, yylineno);
+                                }
+            | expr ADD expr     {
+                                    if(is_num($1) && is_num($3)) {
+                                        emit(add, $1, $3, $$, curr_quad, yylineno);
+                                    }
+                                }
             | expr SUB expr
             | expr MUL expr
             | expr DIV expr
@@ -169,14 +176,14 @@ term:       LPAREN expr RPAREN      {$$ = $2; }
             ;
 
 
-assignexpr: lvalue ASSIGN expr      {if (is_func($1)) yyerror("Cannot assign to function"); }
+assignexpr: lvalue ASSIGN expr      {$$ = manage_assignexpr($1, $3);}
 
 
-primary:    lvalue                  {$$ = $1; }
-            | call                  {$$ = null; }
-            | objectdef             {$$ = null; }
-            | LPAREN funcdef RPAREN {$$ = null; }
-            | const                 {$$ = $1; }
+primary:    lvalue                  {$$ = $1;}
+            | call                  {$$ = null;}
+            | objectdef             {$$ = null;}
+            | LPAREN funcdef RPAREN {$$ = null;}
+            | const                 {$$ = $1;}
             ;
 
 
@@ -249,12 +256,12 @@ block: LCURLY { scope++; } stmt_list RCURLY {hide_scope(scope--); }
        ;
 
 
-const:      NUMBER      {$$ = null; }
-            | STRING    {$$ = newexpr_conststring($1); }
-            | NIL       {$$ = null; }
-            | TRUE      {$$ = null; }
-            | FALSE     {$$ = null; }
-            | REAL      {$$ = null; }
+const:      NUMBER      {$$ = manage_number($1);}
+            | STRING    {$$ = manage_string($1);}
+            | NIL       {$$ = manage_nil(); }
+            | TRUE      {$$ = manage_bool(1);}
+            | FALSE     {$$ = manage_bool(0);}
+            | REAL      {$$ = manage_real($1);}
             ;
 
 

@@ -1,4 +1,5 @@
 #include "icode.h"
+#include "utilities.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,9 +7,35 @@
 quad* quads = null;
 unsigned int total = 0;
 unsigned int curr_quad = 0;
+unsigned int temp_counter = 0;
 int icode_phase = 1;
 
-symbol* newtemp(){return null;}
+char* new_temp_name() {
+
+    char* counter = itoa(temp_counter);
+    char* temp = malloc(2 + sizeof(counter));
+    strcat(temp, "_t");
+    strcat(temp, counter);
+
+    return temp;
+}
+
+void reset_temp() {
+    temp_counter = 0;
+}
+
+symbol* new_temp(){
+    char* name = new_temp_name();
+    symbol* sym = symtable_get(name, scope);
+
+    if(sym == null) {
+        if(symtable_insert(name, LOCALVAR) > 0) {
+            return symtable_get(name, scope);
+        }
+        return null;
+    }
+    return sym;
+}
 
 void expand() {
     assert(total == curr_quad);
@@ -76,11 +103,6 @@ expr* newexpr(expr_t type) {
     return e;
 }
 
-expr* newexpr_conststring(char* s) {
-    expr* e = newexpr(conststring_e);
-    e->str_const = strdup(s);
-    return e;
-}
 
 /*auto dn douleuei akoma exei o 8eos*/
 /*PROSOXH RE MALAKES*/
@@ -90,7 +112,7 @@ expr* emit_iftableitem(expr* e) {
         return e;
     }
     expr* result = newexpr(var_e);
-    result->sym = newtemp();
+    result->sym = new_temp();
     emit(tablegetelem, e, e->index, result, 0, 0);
 
     return result;
@@ -101,8 +123,19 @@ int is_func(expr* e) {
 
     switch (e->type) {
         case programfunc_e:
-            return 1;
         case libraryfunc_e:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+int is_num(expr* e) {
+    if (!e) return 0;
+
+    switch (e->type) {
+        case arithexpr_e:
+        case constnum_e:
             return 1;
         default:
             return 0;
