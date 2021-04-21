@@ -31,7 +31,7 @@ void manage_lvalue(expr* id) {
 expr* manage_global_var(char* id) {
     if (!scope_contains(id, 0)) {
         yy_alphaerror("Global symbol not found");
-        return null;
+        return newexpr(nil_e);
     }
 
     return lvalue_expr(scope_get(id, 0));
@@ -40,36 +40,33 @@ expr* manage_global_var(char* id) {
 
 expr* manage_var(char *id) {
 
-    int code = symtable_insert(id, 2);
+    int code = symtable_insert(id, VAR);
 
-    if (code == NOT_ACCESSIBLE) {
-        yy_alphaerror("Symbol not accessible");
-        return null;
-    }
-    else if (code == VARS) {
-        symbol* symbol = symtable_get(id, 2);
-        if (symbol) {
-            return lvalue_expr(symbol);
+    switch (code) {
+        case NOT_ACCESSIBLE:
+            yy_alphaerror("Symbol not accessible");
+            return newexpr(nil_e);
+        case VARS: {
+            symbol* symbol = symtable_get(id, VAR);
+            if (symbol) {
+                return lvalue_expr(symbol);
+            }
+            symbol = symtable_get(id, LOCALVAR);
+            if (symbol) {
+                return lvalue_expr(symbol);
+            }
         }
-        symbol = symtable_get(id, 1);
-        if (symbol) {
-            return lvalue_expr(symbol);
-        }
+        case FORMAL_ARGUMENT:
+            return lvalue_expr(symtable_get(id, FORMAL));
+        case USERFUNC:
+            return lvalue_expr(symtable_get(id, USERFUNC));
+        case LIBFUNC:
+            return lvalue_expr(symtable_get(id, LIBFUNC));
+        case GLOBAL_VAR:
+            return lvalue_expr(scope_get(id, 0));
+        default:
+            return lvalue_expr(symtable_get(id, VAR));
     }
-    else if (code == FORMAL_ARGUMENT) {
-        return lvalue_expr(symtable_get(id, 3));
-    }
-    else if (code == USER_FUNC) {
-        return lvalue_expr(symtable_get(id, 4));
-    }
-    else if (code == LIB_FUNC) {
-        return lvalue_expr(symtable_get(id, 5));
-    }
-    else if (code == GLOBAL_VAR) {
-        return lvalue_expr(scope_get(id, 0));
-    }
-
-    return lvalue_expr(symtable_get(id, 2));
 }
 
 
@@ -80,7 +77,7 @@ expr* manage_local_var(char *id) {
         type = LOCALVAR;
         if (symtable_insert(id, type) == LIBFUNC_COLLISION) {
             yy_alphaerror("Trying to shadow library function");
-            return null;
+            return newexpr(nil_e);
         }
     }
     else {
@@ -317,8 +314,6 @@ expr* manage_args(char *id) {
 expr* manage_real(double val) {
     expr* new = newexpr(constnum_e);
     new->num_const = val;
-    new->index = null;
-    new->next = null;
     return new;
 }
 
@@ -326,16 +321,12 @@ expr* manage_real(double val) {
 expr* manage_bool(short int val) {
     expr* new = newexpr(constbool_e);
     new->bool_const = val ? true : false;
-    new->index = null;
-    new->next = null;
     return new;
 }
 
 
 expr* manage_nil() {
     expr* new = newexpr(nil_e);
-    new->index = null;
-    new->next = null;
     return new;
 }
 
@@ -343,8 +334,6 @@ expr* manage_nil() {
 expr* manage_string(char *val) {
     expr* e = newexpr(conststring_e);
     e->str_const = strdup(val);
-    e->index = null;
-    e->next = null;
     return e;
 }
 
@@ -352,8 +341,6 @@ expr* manage_string(char *val) {
 expr* manage_number(int val) {
     expr* new = newexpr(constnum_e);
     new->num_const = val;
-    new->index = null;
-    new->next = null;
     return new;
 }
 
@@ -366,8 +353,6 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     expr* new = newexpr(assignexpr_e);
     new->sym = new_temp();
     new->num_const = ex->num_const;
-    new->index = null;
-    new->next = null;
 
     emit(assign, lvalue, null, new, curr_quad, yylineno);
     return new;
@@ -451,21 +436,22 @@ void print_arg(expr* e) {
         case var_e:
         case programfunc_e:
         case assignexpr_e:
+        case arithexpr_e:
         case boolexpr_e:
         case libraryfunc_e:
-            printf("%s ", e->sym->name);
+            printf("%-10s", e->sym->name);
             break;
         case constnum_e:
-            printf("%d ", (int) e->num_const);
+            printf("%-10g",  e->num_const);
             break;
         case nil_e:
-            printf("NIL ");
+            printf("%-10s", "NIL");
             break;
         case constbool_e:
-            printf("%d ", e->bool_const);
+            printf("%-10d", e->bool_const);
             break;
         case conststring_e:
-            printf("%s ", e->str_const);
+            printf("%-10s", e->str_const);
             break;
         default:
             break;
@@ -474,10 +460,13 @@ void print_arg(expr* e) {
 
 void print_quads() {
     int i = 0;
+    printf("quad#\t%-15s%-12s%-10s%-10s\n", "opcode", "result", "arg1", "arg2");
+    printf("----------------------------------------------------------\n");
     for (i = 0; i < curr_quad; i++) {
         if (!quads[i].result) break;
-        printf("%s ", opcodes[quads[i].op]);
-        printf("%s ", quads[i].result->sym->name);
+        printf("%d:\t", i);
+        printf("%-15s", opcodes[quads[i].op]);
+        printf("%-12s", quads[i].result->sym->name);
         if (quads[i].arg1) {
             print_arg(quads[i].arg1);
         }

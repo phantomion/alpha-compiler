@@ -30,11 +30,11 @@ char* libfuncs[] = {
 
 symbol* symtable[MAX];
 symbol* scope_link[MAX];
-functionoffset_queue* queue = null;
+functionoffset_stack* stack = null;
 
 void reset_formalarg_offset() { formalarg_offset = 0; }
 void reset_functionlocal_offset() {
-    int offset = function_dequeue();
+    int offset = function_pop();
     if (offset == -1) {
         functionlocal_offset = 0;
     }
@@ -45,7 +45,7 @@ void reset_functionlocal_offset() {
 
 void save_functionlocal_offset() {
     if (funcdef_counter > 0) {
-        function_enqueue(functionlocal_offset);
+        function_push(functionlocal_offset);
     }
     functionlocal_offset = 0;
     enter_scopespace();
@@ -198,43 +198,43 @@ int symtable_insert(const char* name, enum symbol_t type) {
     unsigned int hash = symtable_hash(name);
 
     symbol* table_entry = symtable[hash];
-    symbol* scope_entry = scope_link[type == 3 ? scope + 1 : scope];
+    symbol* scope_entry = scope_link[type == FORMAL ? scope + 1 : scope];
     symbol* table_prev = null;
     symbol* scope_prev = null;
     symbol* new;
 
     while(table_entry) {
 
-        if(type == 0){
+        if(type == GLOBAL){
             if(scope_contains(name, 0))
                 return 0;
         }
-        else if(type == 1){
+        else if(type == LOCALVAR){
             if (scope_contains(name, scope))
                 return 1;
             if (check_for_libfunc(name) && scope != 0)
                 return LIBFUNC_COLLISION;
         }
-        else if (type == 2) {
+        else if (type == VAR) {
 
-            if (symtable_lookup(name, 3)) return FORMAL_ARGUMENT;
+            if (symtable_lookup(name, FORMAL)) return FORMAL_ARGUMENT;
             int i;
             for (i = scope; i > 0; i--) {
                 if (scope_contains(name, i)) {
-                    if (symtable_lookup(name, 4)) return USER_FUNC;
-                    if (symtable_lookup(name, 5)) return LIB_FUNC;
+                    if (symtable_lookup(name, USERFUNC)) return USER_FUNC;
+                    if (symtable_lookup(name, LIBFUNC)) return LIB_FUNC;
                     if (funcdef_counter == 0) return VARS;
                     else return NOT_ACCESSIBLE;
                 }
             }
             if (scope_contains(name, 0)) return GLOBAL_VAR;
         }
-        else if (type == 3) {
+        else if (type == FORMAL) {
             if (scope_contains(name, scope)) return COLLISION;
             if (scope_contains(name, scope + 1)) return FORMAL_COLLISION;
-            if (symtable_lookup(name, 5)) return LIBFUNC_COLLISION;
+            if (symtable_lookup(name, LIBFUNC)) return LIBFUNC_COLLISION;
         }
-        else if (type == 4) {
+        else if (type == USERFUNC) {
             if (scope_contains(name, scope))
                 return COLLISION;
             if (check_for_libfunc(name))
@@ -253,12 +253,12 @@ int symtable_insert(const char* name, enum symbol_t type) {
     new = malloc(sizeof(struct symbol));
     new->isActive = 1;
     new->name = strdup(name);
-    if (type == 3) new->scope = scope + 1;
+    if (type == FORMAL) new->scope = scope + 1;
     else new->scope = scope;
-    new->line = type == 5 ? 0 : yylineno;
+    new->line = type == LIBFUNC ? 0 : yylineno;
     new->type = type;
     new->next = null;
-    if (type == 4 || type == 5) {
+    if (type == USERFUNC || type == LIBFUNC) {
         new->space = -1;
         new->offset = -1;
     }
@@ -273,7 +273,7 @@ int symtable_insert(const char* name, enum symbol_t type) {
     else symtable[hash] = new;
 
     if   (scope_prev) scope_prev->next_in_scope = new;
-    else scope_link[type == 3 ? scope + 1 : scope] = new;
+    else scope_link[type == FORMAL ? scope + 1 : scope] = new;
 
     return 1;
 }
@@ -318,24 +318,24 @@ void initialize_libfuncs() {
     }
 }
 
-void function_enqueue(int offset) {
-    if (!queue) {
-        queue = malloc(sizeof(functionoffset_queue));
-        queue->localfunction_offset = offset;
-        queue->next = null;
+void function_push(int offset) {
+    if (!stack) {
+        stack = malloc(sizeof(functionoffset_stack));
+        stack->localfunction_offset = offset;
+        stack->next = null;
         return;
     }
-    functionoffset_queue* new = malloc(sizeof(functionlocal_offset));
+    functionoffset_stack* new = malloc(sizeof(functionlocal_offset));
     new->localfunction_offset = offset;
-    new->next = queue;
-    queue = new;
+    new->next = stack;
+    stack = new;
 }
 
-int function_dequeue() {
-    if (!queue) return -1;
-    functionoffset_queue* deq = queue;
-    queue = queue->next;
-    int offset = deq->localfunction_offset;
-    free(deq);
+int function_pop() {
+    if (!stack) return -1;
+    functionoffset_stack* pop = stack;
+    stack = stack->next;
+    int offset = pop->localfunction_offset;
+    free(pop);
     return offset;
 }

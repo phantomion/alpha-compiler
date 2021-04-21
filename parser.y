@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
 
     initialize_libfuncs();
     yyparse();
-    print_scopes();
+    /*print_scopes();*/
     if (icode_phase) {
         print_quads();
     }

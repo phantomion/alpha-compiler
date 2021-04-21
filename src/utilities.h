@@ -52,10 +52,10 @@ typedef struct symbol {
     struct symbol* next_in_scope;
 }symbol;
 
-typedef struct functionoffset_queue {
+typedef struct functionoffset_stack {
     int localfunction_offset;
-    struct functionoffset_queue* next;
-}functionoffset_queue;
+    struct functionoffset_stack* next;
+}functionoffset_stack;
 
 
 char* itoa(int val);
@@ -79,7 +79,7 @@ void reset_formalarg_offset();
 void reset_functionlocal_offset();
 void save_functionlocal_offset();
 
-void function_enqueue(int offset);
-int function_dequeue();
+void function_push(int offset);
+int function_pop();
 
 #endif

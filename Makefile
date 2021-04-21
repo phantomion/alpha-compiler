@@ -40,7 +40,7 @@ clean:
 	rm src/analyzer.*
 	rm src/parser.*
 
-tests:
+test:
 	make run ARGS=tests/arith_quads.alpha
 
 run:

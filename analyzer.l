@@ -73,7 +73,7 @@ COMMENT     \/\/.*$
 
 
     char string_buf[1024];
-    char *string_buf_ptr;
+    char *string_buf_ptr = NULL;
     int tmp_nest = 0;
 
 

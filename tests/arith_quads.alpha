@@ -1,2 +1,12 @@
 y = 2 < 3;
 x = y;
+x = (4 * 9) + 10 - (5 / 3);
+x = -x;
+y = 2 >= 10;
+y = 2 == 2;
+y = x != 4;
+d = true and false;
+qq = 10;
+a = "sure";
+pi = 3.14;
+nope = false;

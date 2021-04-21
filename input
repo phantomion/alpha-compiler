@@ -5,7 +5,6 @@ print(typeof(x));
 print--;
 ::print(::typeof(::x));
 function foo() {
-    local nauths = true;
     function qq(bar, qq) {
         local print = y;
         return qq;
@@ -13,14 +12,10 @@ function foo() {
     function foo(bar,takos, takos, print, foo) {
         takos--;
         local foo = 2;
-        local loka = 1;
         return bar + foo;
         function h() {
-            local gucci_forema = true;
-            yes = false;
             return bar + takos;
         }
-        local malakas = "nai";
         ::print--;
     }
     local foo++;
@@ -28,28 +23,21 @@ function foo() {
     function foo() {}
     mhtsos = 2 + 5 * 3;
     {
-        local foo = [{foo: [{foo:foo}]}];
         function yes(sad) {
             local d = 10;
         }
-        foo.foo..foo(::foo);
     }
-    x = (function() {});
     ::a;
     ::x;
     {
         local x=::x;
-        local f = (function(){return x; });
     }
 }
 ++foo;
 local foo = 10;
-gia_ela = (function() {return 1;});
-lel = print();
 input();
 lul = "Illegal escape char(\\m) \m";
 lul = "Illegal escape char\n \\n";
-lala = mhtsos(asjdk);
 return th + mana + sou;
 
 for(i = 0; i < 10; i++) {
