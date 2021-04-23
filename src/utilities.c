@@ -211,7 +211,7 @@ int symtable_insert(const char* name, enum symbol_t type) {
         }
         else if(type == LOCALVAR){
             if (scope_contains(name, scope))
-                return 1;
+                return VARS;
             if (check_for_libfunc(name) && scope != 0)
                 return LIBFUNC_COLLISION;
         }
@@ -224,6 +224,7 @@ int symtable_insert(const char* name, enum symbol_t type) {
                     if (symtable_lookup(name, USERFUNC)) return USER_FUNC;
                     if (symtable_lookup(name, LIBFUNC)) return LIB_FUNC;
                     if (funcdef_counter == 0) return VARS;
+                    if (i == scope) return VARS;
                     else return NOT_ACCESSIBLE;
                 }
             }
@@ -250,7 +251,7 @@ int symtable_insert(const char* name, enum symbol_t type) {
         scope_entry = scope_entry->next_in_scope;
     }
 
-    new = malloc(sizeof(struct symbol));
+    new = calloc(1, sizeof(struct symbol));
     new->isActive = 1;
     new->name = strdup(name);
     if (type == FORMAL) new->scope = scope + 1;
@@ -320,12 +321,12 @@ void initialize_libfuncs() {
 
 void function_push(int offset) {
     if (!stack) {
-        stack = malloc(sizeof(functionoffset_stack));
+        stack = calloc(1, sizeof(functionoffset_stack));
         stack->localfunction_offset = offset;
         stack->next = null;
         return;
     }
-    functionoffset_stack* new = malloc(sizeof(functionlocal_offset));
+    functionoffset_stack* new = calloc(1, sizeof(functionlocal_offset));
     new->localfunction_offset = offset;
     new->next = stack;
     stack = new;

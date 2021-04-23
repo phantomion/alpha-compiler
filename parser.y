@@ -17,6 +17,7 @@
     extern int anonymous_functions;
     extern int loop_counter;
     extern int icode_phase;
+    extern int functionlocal_offset;
 
     extern char* libfuncs[];
 
@@ -46,6 +47,9 @@
 %type <exprNode> assignexpr
 %type <exprNode> objectdef
 %type <exprNode> const
+%type <exprNode> funcprefix
+%type <strVal> funcname
+%type <intVal> funcbody
 
 %expect 2
 
@@ -172,10 +176,10 @@ term:       LPAREN expr RPAREN      {$$ = $2;}
 assignexpr: lvalue ASSIGN expr      {$$ = manage_assignexpr($1, $3);}
 
 
-primary:    lvalue                  {$$ = $1;}
-            | call                  {$$ = null;}
-            | objectdef             {$$ = null;}
-            | LPAREN funcdef RPAREN {$$ = null;}
+primary:    lvalue                  {$$ = emit_iftableitem($1);}
+            | call                  {$$ = $1;}
+            | objectdef             {$$ = $1;}
+            | LPAREN funcdef RPAREN {$$ = $2;}
             | const                 {$$ = $1;}
             ;
 
@@ -183,12 +187,12 @@ primary:    lvalue                  {$$ = $1;}
 lvalue:     ID          {$$ = manage_var($1);}
             | LOCAL ID  {$$ = manage_local_var($2);}
             | SCOPE ID  {$$ = manage_global_var($2);}
-            | member    {$$ = null; }
+            | member    {$$ = $1; }
             ;
 
 
-member:     lvalue POINT ID                 {if (is_func($1)) yyerror("Cannot access member of function"); }
-            | lvalue LBRACKET expr RBRACKET {if (is_func($1)) yyerror("Cannot access member of function"); }
+member:     lvalue POINT ID                 {$$ = manage_member_item($1, $3);}
+            | lvalue LBRACKET expr RBRACKET {$$ = manage_array_item($1, $3); }
             | call POINT ID
             | call LBRACKET expr RBRACKET
             ;
@@ -196,7 +200,7 @@ member:     lvalue POINT ID                 {if (is_func($1)) yyerror("Cannot ac
 
 call:       call LPAREN elist RPAREN
             | lvalue callsuffix
-            | LPAREN funcdef RPAREN LPAREN elist RPAREN {$$ = null; }
+            | LPAREN funcdef RPAREN LPAREN elist RPAREN {$$ = $2; }
             ;
 
 
@@ -239,8 +243,23 @@ indexelem:  LCURLY expr COLON expr RCURLY
             ;
 
 
-funcdef: FUNCTION ID LPAREN {enter_scopespace();} idlist {manage_function($2);} RPAREN block {manage_function_exit();}
-         | FUNCTION LPAREN {enter_scopespace();} idlist {manage_anonymous_function(); } RPAREN block {manage_function_exit();}
+funcname: ID {$$ = $1;}
+        | {$$ = new_anonymous_function();}
+        ;
+
+funcprefix: FUNCTION funcname {$$ = manage_function($2);}
+          ;
+
+
+funcargs: LPAREN idlist RPAREN {enter_scopespace();}
+        ;
+
+
+funcbody: block {$$ = functionlocal_offset;}
+        ;
+
+
+funcdef: funcprefix funcargs funcbody {manage_function_exit($1, $3);}
          ;
 
 

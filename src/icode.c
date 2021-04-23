@@ -107,16 +107,13 @@ expr* newexpr(expr_t type) {
 }
 
 
-/*auto dn douleuei akoma exei o 8eos*/
-/*PROSOXH RE MALAKES*/
-/*8ELEI ALLAGES*/
 expr* emit_iftableitem(expr* e) {
-    if (e->type != tableitem_e) {
+    if (e && e->type != tableitem_e) {
         return e;
     }
     expr* result = newexpr(var_e);
     result->sym = new_temp();
-    emit(tablegetelem, e, e->index, result, 0, 0);
+    emit(tablegetelem, e, e->index, result, curr_quad, yylineno);
 
     return result;
 }

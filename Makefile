@@ -42,6 +42,8 @@ clean:
 
 test:
 	make run ARGS=tests/arith_quads.alpha
+	make run ARGS=tests/func_quads.alpha
+	make run ARGS=tests/tableitem_quads.alpha
 
 run:
 	$(BUILD)/$(TARGET) $(ARGS)

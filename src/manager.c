@@ -1,7 +1,9 @@
 #include "manager.h"
 #include "icode.h"
 #include "utilities.h"
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 extern int scope;
 extern int funcdef_counter;
@@ -72,57 +74,73 @@ expr* manage_var(char *id) {
 
 expr* manage_local_var(char *id) {
 
-    enum symbol_t type;
     if(scope > 0) {
-        type = LOCALVAR;
-        if (symtable_insert(id, type) == LIBFUNC_COLLISION) {
-            yy_alphaerror("Trying to shadow library function");
-            return newexpr(nil_e);
+        switch (symtable_insert(id, LOCALVAR)) {
+            case LIBFUNC_COLLISION:
+                yy_alphaerror("Trying to shadow library function");
+                return newexpr(nil_e);
+                break;
+            case VARS: {
+                symbol* sym = symtable_get(id, LOCALVAR);
+                if (sym) return lvalue_expr(sym);
+                else return lvalue_expr(symtable_get(id, VAR));
+                break;
+            }
+            default:
+                return lvalue_expr(symtable_get(id, LOCALVAR));
         }
     }
-    else {
-        type = GLOBAL;
-        symtable_insert(id, type);
-    }
+    symtable_insert(id, GLOBAL);
 
-    return lvalue_expr(symtable_get(id, type));
+    return lvalue_expr(scope_get(id, 0));
 }
 
 
-void manage_function(char *id) {
-
-    save_functionlocal_offset();
-    funcdef_counter++;
-    reset_formalarg_offset();
+expr* manage_function(char *id) {
 
     int code = symtable_insert(id, USERFUNC);
 
+    symbol* func = null;
     if (code == LIBFUNC_COLLISION) {
         yy_alphaerror("Trying to shadow libfunc");
     }
     else if (code == COLLISION) {
         yy_alphaerror("Symbol redefinition");
     }
-}
+    else {
+        func = symtable_get(id, USERFUNC);
+        func->func_addr = curr_quad;
+    }
 
-
-void manage_anonymous_function() {
-    anonymous_functions++;
     save_functionlocal_offset();
     reset_formalarg_offset();
     funcdef_counter++;
 
+    expr* new_lvalue = lvalue_expr(func);
+    emit(funcstart, null, null, new_lvalue, curr_quad, yylineno);
+
+    return new_lvalue;
+}
+
+char* new_anonymous_function() {
+    anonymous_functions++;
     char* name = malloc(1 + strlen(itoa(anonymous_functions)));
     strcat(name, "$");
     strcat(name, itoa(anonymous_functions));
-    symtable_insert(name, 4);
+    return name;
 }
 
-
-void manage_function_exit() {
+expr* manage_function_exit(expr* func, int locals) {
     funcdef_counter--;
     reset_functionlocal_offset();
     exit_scopespace();
+
+    if (func->sym) {
+        func->sym->total_locals = locals;
+    }
+
+    emit(funcend, null, null, func, curr_quad, yylineno);
+    return func;
 }
 
 
@@ -348,6 +366,13 @@ expr* manage_number(int val) {
 expr* manage_assignexpr(expr* lvalue, expr* ex) {
     if (is_func(lvalue)) yy_alphaerror("Cannot assign to function");
 
+    if (lvalue && lvalue->type == tableitem_e) {
+        emit(tablesetelem, lvalue, lvalue->index, ex, curr_quad, yylineno);
+        expr* new = emit_iftableitem(lvalue);
+        new->type = assignexpr_e;
+        return new;
+    }
+
     emit(assign, ex, null, lvalue, curr_quad, yylineno);
 
     expr* new = newexpr(assignexpr_e);
@@ -364,7 +389,10 @@ expr* manage_less(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const < arg2->num_const;
 
-    emit(if_less, arg1, arg2, new, curr_quad, yylineno);
+    emit(if_less, arg1, arg2, null, curr_quad + 3, yylineno);
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad + 2, yylineno);
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -373,7 +401,10 @@ expr* manage_lesseq(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const <= arg2->num_const;
 
-    emit(if_lesseq, arg1, arg2, new, curr_quad, yylineno);
+    emit(if_lesseq, arg1, arg2, null, curr_quad + 3, yylineno);
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad + 2, yylineno);
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -382,7 +413,10 @@ expr* manage_greater(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const > arg2->num_const;
 
-    emit(if_greatereq, arg1, arg2, new, curr_quad, yylineno);
+    emit(if_greater, arg1, arg2, null, curr_quad + 3, yylineno);
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad + 2, yylineno);
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -391,7 +425,10 @@ expr* manage_greatereq(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const >= arg2->num_const;
 
-    emit(if_greatereq, arg1, arg2, new, curr_quad, yylineno);
+    emit(if_greatereq, arg1, arg2, null, curr_quad + 3, yylineno);
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad + 2, yylineno);
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -400,7 +437,10 @@ expr* manage_eq(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const == arg2->num_const;
 
-    emit(if_eq, arg1, arg2, new, curr_quad, yylineno);
+    emit(if_eq, arg1, arg2, null, curr_quad + 3, yylineno);
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad + 2, yylineno);
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -409,7 +449,10 @@ expr* manage_neq(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const != arg2->num_const;
 
-    emit(if_noteq, arg1, arg2, new, curr_quad, yylineno);
+    emit(if_noteq, arg1, arg2, null, curr_quad + 3, yylineno);
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad + 2, yylineno);
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -431,6 +474,30 @@ expr* manage_and(expr* arg1, expr* arg2) {
     return new;
 }
 
+expr* manage_member_item(expr* lv, char* name) {
+    if (is_func(lv)) yy_alphaerror("Cannot access member of function");
+
+    lv = emit_iftableitem(lv);
+    expr* new = newexpr(tableitem_e);
+    new->sym = lv->sym;
+    new->index = manage_string(name);
+
+    return new;
+}
+
+expr* manage_array_item(expr* lv, expr* ex) {
+    if (is_func(lv)) yy_alphaerror("Cannot access member of function");
+
+    if (!lv) return newexpr(nil_e);
+
+    lv = emit_iftableitem(lv);
+    expr* new = newexpr(tableitem_e);
+    new->sym = lv->sym;
+    new->index = ex;
+
+    return new;
+}
+
 void print_arg(expr* e) {
     switch (e->type) {
         case var_e:
@@ -438,6 +505,7 @@ void print_arg(expr* e) {
         case assignexpr_e:
         case arithexpr_e:
         case boolexpr_e:
+        case tableitem_e:
         case libraryfunc_e:
             printf("%-10s", e->sym->name);
             break;
@@ -447,9 +515,15 @@ void print_arg(expr* e) {
         case nil_e:
             printf("%-10s", "NIL");
             break;
-        case constbool_e:
-            printf("%-10d", e->bool_const);
+        case constbool_e: {
+            if (e->bool_const == true) {
+                printf("%-10s", "TRUE");
+            }
+            else {
+                printf("%-10s", "FALSE");
+            }
             break;
+        }
         case conststring_e:
             printf("%-10s", e->str_const);
             break;
@@ -460,19 +534,27 @@ void print_arg(expr* e) {
 
 void print_quads() {
     int i = 0;
-    printf("quad#\t%-15s%-12s%-10s%-10s\n", "opcode", "result", "arg1", "arg2");
+    printf("quad#\t%-15s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label");
     printf("----------------------------------------------------------\n");
     for (i = 0; i < curr_quad; i++) {
-        if (!quads[i].result) break;
         printf("%d:\t", i);
         printf("%-15s", opcodes[quads[i].op]);
-        printf("%-12s", quads[i].result->sym->name);
+        if (quads[i].result) {
+            print_arg(quads[i].result);
+        }
+        else printf("%-10s", " ");
         if (quads[i].arg1) {
             print_arg(quads[i].arg1);
         }
+        else printf("%-10s", " ");
         if (quads[i].arg2) {
             print_arg(quads[i].arg2);
         }
+        else printf("%-10s", " ");
+        if (quads[i].label != i) {
+            printf("%-10d", quads[i].label);
+        }
+        else printf("%-10s", " ");
         printf("\n");
     }
 }

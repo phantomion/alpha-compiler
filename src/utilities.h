@@ -45,6 +45,8 @@ typedef struct symbol {
     unsigned int scope;
     unsigned int line;
     unsigned int offset;
+    unsigned int func_addr;
+    unsigned int total_locals;
     short int isActive;
     enum scopespace_t space;
     enum symbol_t type;

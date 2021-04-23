@@ -1,0 +1,10 @@
+function foo(mhtsos) {
+    local nai = 2;
+    nai = 5;
+}
+
+function bar(qq) {
+    function foo(y) {
+        oxi = y < 3;
+    }
+}
