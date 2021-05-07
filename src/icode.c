@@ -141,3 +141,12 @@ int is_num(expr* e) {
             return 0;
     }
 }
+
+expr* insert_last(expr* list, expr* node) {
+    if (!list) return node;
+
+    expr* tmp = list;
+    while (tmp->next) tmp = tmp->next;
+    tmp->next = node;
+    return list;
+}

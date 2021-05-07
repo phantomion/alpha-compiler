@@ -498,6 +498,108 @@ expr* manage_array_item(expr* lv, expr* ex) {
     return new;
 }
 
+expr* make_call(expr* lv, expr* reversed_elist) {
+    expr* func = emit_iftableitem(lv);
+
+    while (reversed_elist) {
+        emit(param, null, null, reversed_elist, curr_quad, yylineno);
+        reversed_elist = reversed_elist->next;
+    }
+
+    emit(call, null, null, func, curr_quad, yylineno);
+    expr* result = newexpr(var_e);
+    result->sym = new_temp();
+    emit(getretval, null, null, result, curr_quad, yylineno);
+
+    return result;
+}
+
+expr* manage_call_funcdef(expr* funcdef, expr* elist) {
+    expr* func = newexpr(programfunc_e);
+    func->sym = funcdef->sym;
+
+    return make_call(func, elist);
+}
+
+struct call* manage_methodcall(char* id, expr* elist) {
+    struct call* methodcall = calloc(1, sizeof(struct call));
+
+    methodcall->elist = elist;
+    methodcall->method = 1;
+    methodcall->name = id;
+
+    return methodcall;
+}
+
+struct call* manage_normcall(expr* elist) {
+    struct call* normcall = calloc(1, sizeof(struct call));
+
+    normcall->elist = elist;
+    normcall->method = 0;
+    normcall->name = null;
+
+    return normcall;
+}
+
+expr* manage_call_lvalue(expr* lvalue, struct call* callsuffix) {
+    lvalue = emit_iftableitem(lvalue);
+
+    if (callsuffix->method) {
+        expr* t = lvalue;
+        lvalue = emit_iftableitem(manage_member_item(t, callsuffix->name));
+        callsuffix->elist = insert_last(callsuffix->elist, t);
+    }
+
+    return make_call(lvalue, callsuffix->elist);
+}
+
+expr* manage_elist(expr* expr, struct expr* curr_list) {
+    return insert_last(curr_list, expr);
+}
+
+expr* manage_tablemake(expr* elist) {
+    expr* t = newexpr(newtable_e);
+    int i = 0;
+
+    t->sym = new_temp();
+    emit(tablecreate, null, null, t, curr_quad, yylineno);
+
+    while (elist) {
+        emit(tablesetelem, manage_number(i++), elist, t, curr_quad, yylineno);
+        elist = elist->next;
+    }
+
+    return t;
+}
+
+index_elem* manage_indexelem(expr* key, expr* value) {
+    index_elem* elem = calloc(1, sizeof(index_elem));
+    elem->key = key;
+    elem->value = value;
+
+    return elem;
+}
+
+index_elem* manage_indexelemlist(index_elem* node, index_elem* list) {
+    if (!list) return node;
+
+    node->next = list;
+    return node;
+}
+
+expr* manage_mapmake(index_elem* list) {
+    expr* t = newexpr(newtable_e);
+    t->sym = new_temp();
+    emit(tablecreate, null, null, t, curr_quad, yylineno);
+
+    while(list) {
+        emit(tablesetelem, list->key, list->value, t, curr_quad, yylineno);
+        list = list->next;
+    }
+
+    return t;
+}
+
 void print_arg(expr* e) {
     switch (e->type) {
         case var_e:
@@ -506,6 +608,7 @@ void print_arg(expr* e) {
         case arithexpr_e:
         case boolexpr_e:
         case tableitem_e:
+        case newtable_e:
         case libraryfunc_e:
             printf("%-10s", e->sym->name);
             break;

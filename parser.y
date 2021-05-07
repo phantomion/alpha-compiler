@@ -34,6 +34,8 @@
     char* strVal;
     double doubleVal;
     struct expr* exprNode;
+    struct call* callNode;
+    struct index_elem* indexElemNode;
 }
 
 %type <exprNode> lvalue
@@ -41,6 +43,7 @@
 %type <exprNode> call
 %type <exprNode> funcdef
 %type <exprNode> elist
+%type <exprNode> commaexpr
 %type <exprNode> expr
 %type <exprNode> term
 %type <exprNode> primary
@@ -48,6 +51,12 @@
 %type <exprNode> objectdef
 %type <exprNode> const
 %type <exprNode> funcprefix
+%type <callNode> callsuffix
+%type <callNode> normcall
+%type <callNode> methodcall
+%type <indexElemNode> indexelem
+%type <indexElemNode> indexelemlist
+%type <indexElemNode> indexed
 %type <strVal> funcname
 %type <intVal> funcbody
 
@@ -198,48 +207,48 @@ member:     lvalue POINT ID                 {$$ = manage_member_item($1, $3);}
             ;
 
 
-call:       call LPAREN elist RPAREN
-            | lvalue callsuffix
-            | LPAREN funcdef RPAREN LPAREN elist RPAREN {$$ = $2; }
+call:       call LPAREN elist RPAREN {$$ = make_call($1, $3);}
+            | lvalue callsuffix {$$ = manage_call_lvalue($1, $2);}
+            | LPAREN funcdef RPAREN LPAREN elist RPAREN {$$ = manage_call_funcdef($2, $5);}
             ;
 
 
-callsuffix: normcall
-            | methodcall
+callsuffix: normcall {$$ = $1;}
+            | methodcall {$$ = $1;}
             ;
 
 
-normcall:   LPAREN elist RPAREN
+normcall:   LPAREN elist RPAREN {$$ = manage_normcall($2);}
 
 
-methodcall: RANGE ID LPAREN elist RPAREN
+methodcall: RANGE ID LPAREN elist RPAREN {$$ = manage_methodcall($2, $4);}
 
 
-elist:      expr commaexpr
+elist:      expr commaexpr {$$ = manage_elist($1, $2);}
             | {$$ = null;}
             ;
 
 
-commaexpr:  COMMA expr commaexpr
-            |
+commaexpr:  COMMA expr commaexpr {$$ = manage_elist($2, $3);}
+            | {$$ = null;}
             ;
 
 
-objectdef:  LBRACKET elist RBRACKET     {$$ = null; }
-            | LBRACKET indexed RBRACKET {$$ = null; }
+objectdef:  LBRACKET elist RBRACKET     {$$ = manage_tablemake($2); }
+            | LBRACKET indexed RBRACKET {$$ = manage_mapmake($2); }
             ;
 
 
-indexed:    indexelem indexelemlist
+indexed:    indexelem indexelemlist {$$ = manage_indexelemlist($1, $2);}
             ;
 
 
-indexelemlist:  COMMA indexelem indexelemlist
-                |
+indexelemlist:  COMMA indexelem indexelemlist {$$ = manage_indexelemlist($2, $3);}
+                | {$$ = null;}
                 ;
 
 
-indexelem:  LCURLY expr COLON expr RCURLY
+indexelem:  LCURLY expr COLON expr RCURLY {$$ = manage_indexelem($2, $4);}
             ;
 
 
