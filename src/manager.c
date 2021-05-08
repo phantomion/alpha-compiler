@@ -405,6 +405,23 @@ void manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad) {
     patchlabel(elsep_quad, curr_quad);
 }
 
+unsigned int manage_whilestart() {
+    unsigned int quad = curr_quad;
+    return quad;
+}
+
+unsigned int manage_whilecond(expr* ex) {
+    emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
+    unsigned int quad = curr_quad;
+    emit(jump, null, null, null, 0, yylineno);
+    return quad;
+}
+
+void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad) {
+    emit(jump, null, null, null, whilestart_quad, yylineno);
+    patchlabel(whilecond_quad, curr_quad);
+}
+
 expr* manage_less(expr* arg1, expr* arg2) {
 
     expr* new = newexpr(boolexpr_e);

@@ -51,6 +51,9 @@
 %type <strVal> funcname
 %type <intVal> funcbody
 %type <intVal> ifprefix
+%type <intVal> elseprefix
+%type <intVal> whilestart
+%type <intVal> whilecond
 
 %expect 2
 
@@ -288,12 +291,28 @@ commaidlist: COMMA ID { $<exprNode>$ = manage_args($2); } commaidlist
              ;
 
 
-ifstmt: IF LPAREN expr RPAREN stmt
-        | IF LPAREN expr RPAREN stmt ELSE stmt
+ifprefix: IF LPAREN expr RPAREN { $$ = manage_ifprefix($3);}
+          ;
+
+
+elseprefix: ELSE { $$ = manage_elseprefix(); }
+            ;
+
+
+ifstmt: ifprefix stmt                   { manage_ifstmt($1); }
+        | ifprefix stmt elseprefix stmt { manage_ifelse($1, $3); }
         ;
 
 
-whilestmt:  WHILE LPAREN expr RPAREN { loop_counter++; } stmt {loop_counter--; };
+whilestart: WHILE { $$ = manage_whilestart(); };
+            ;
+
+
+whilecond: LPAREN expr RPAREN { $$ = manage_whilecond($2); }
+           ;
+
+whilestmt: whilestart whilecond { loop_counter++; } stmt { loop_counter--; manage_whilestmt($1, $2); }
+       ;
 
 
 forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};

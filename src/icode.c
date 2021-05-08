@@ -19,10 +19,18 @@ char* opcodes[] = {
 };
 
 void patchlabel(unsigned quadNo, unsigned label) {
-    assert(quadNo < curr_quad && !quads[quadNo].label);
+    assert(quadNo < curr_quad);
+    assert(!quads[quadNo].label);
     quads[quadNo].label = label;
 }
 
+void patchlist(int list, int label) {
+        while(list) {
+                int next = quads[list].label;
+                quads[list].label = label;
+                list = next;
+        }
+}
 
 char* new_temp_name() {
 

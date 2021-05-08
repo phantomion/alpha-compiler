@@ -45,6 +45,7 @@ test:
 	make run ARGS=tests/func_quads.alpha
 	make run ARGS=tests/tableitem_quads.alpha
 	make run ARGS=tests/ifstmts.alpha
+	make run ARGS=tests/whilestmts.alpha
 
 run:
 	$(BUILD)/$(TARGET) $(ARGS)

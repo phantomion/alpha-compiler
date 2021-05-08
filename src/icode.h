@@ -63,6 +63,7 @@ void emit(iopcode op,
         );
 
 void patchlabel(unsigned quadNo, unsigned label);
+void patchlist(int list, int label);
 expr* lvalue_expr(symbol* sym);
 expr* newexpr(expr_t type);
 expr* emit_iftableitem(expr* e);
