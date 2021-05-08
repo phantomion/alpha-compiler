@@ -7,6 +7,7 @@
 
 extern unsigned int curr_quad;
 
+int yy_alphaerror(const char* message);
 void manage_lvalue(expr* id);
 expr* manage_global_var(char* id);
 expr* manage_var(char *id);
@@ -49,6 +50,17 @@ expr* manage_or(expr* arg1, expr* arg2);
 expr* manage_and(expr* arg1, expr* arg2);
 expr* manage_member_item(expr* lv, char* name);
 expr* manage_array_item(expr* lv, expr* ex);
+expr* make_call(expr* lv, expr* reversed_elist);
+expr* manage_call_funcdef(expr* funcdef, expr* elist);
+struct call* manage_methodcall(char* id, expr* elist);
+struct call* manage_normcall(expr* elist);
+expr* manage_elist(expr* expr, struct expr* curr_list);
+expr* manage_call_lvalue(expr* lvalue, struct call* callsuffix);
+expr* manage_tablemake(expr* elist);
+index_elem* manage_indexelem(expr* key, expr* value);
+index_elem* manage_indexelemlist(index_elem* node, index_elem* list);
+expr* manage_mapmake(index_elem* list);
+void manage_return(expr* expr);
 void print_quads();
 char* new_anonymous_function();
 #endif /* MANAGER_H */

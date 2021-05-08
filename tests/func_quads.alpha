@@ -7,4 +7,7 @@ function bar(qq) {
     function foo(y) {
         oxi = y < 3;
     }
+    return 5;
+    return a;
+    return;
 }

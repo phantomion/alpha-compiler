@@ -1,0 +1,11 @@
+sprite..move(dx, dy, dd);
+
+w = g();
+
+x = f(y) (a, b);
+
+x = [-4, 13, 12.32, a+b];
+
+t = [{"x" : 0}, {5 : a+b}, {-1: 0}];
+
+x = (function(c, d) {return c+d;}) (1, 2);

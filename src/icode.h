@@ -51,6 +51,17 @@ typedef struct quad {
     unsigned int line;
 }quad;
 
+struct call {
+    expr* elist;
+    unsigned method;
+    char* name;
+};
+
+typedef struct index_elem {
+    expr* key;
+    expr* value;
+    struct index_elem* next;
+}index_elem;
 
 void expand();
 
@@ -67,10 +78,11 @@ void patchlist(int list, int label);
 expr* lvalue_expr(symbol* sym);
 expr* newexpr(expr_t type);
 expr* emit_iftableitem(expr* e);
+void check_arith(expr* e, const char* msg);
 int is_func(expr* e);
-int is_num(expr* e);
 symbol* new_temp();
 char* new_temp_name();
 void reset_temp();
+expr* insert_last(expr* list, expr* node);
 
 #endif /* ICODE_H */
