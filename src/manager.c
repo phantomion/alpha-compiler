@@ -383,6 +383,28 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     return new;
 }
 
+unsigned int manage_ifprefix(expr* ex) {
+    emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
+    unsigned int quad = curr_quad;
+    emit(jump, null, null, null, 0, yylineno);
+    return quad;
+}
+
+void manage_ifstmt(unsigned int qq) {
+    patchlabel(qq, curr_quad);
+}
+
+unsigned int manage_elseprefix() {
+    unsigned int quad = curr_quad;
+    emit(jump, null, null, null, 0, yylineno);
+    return quad;
+}
+
+void manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad) {
+    patchlabel(ifp_quad, elsep_quad+1);
+    patchlabel(elsep_quad, curr_quad);
+}
+
 expr* manage_less(expr* arg1, expr* arg2) {
 
     expr* new = newexpr(boolexpr_e);

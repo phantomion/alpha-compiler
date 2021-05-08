@@ -50,6 +50,7 @@
 %type <exprNode> funcprefix
 %type <strVal> funcname
 %type <intVal> funcbody
+%type <intVal> ifprefix
 
 %expect 2
 

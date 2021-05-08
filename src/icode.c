@@ -18,6 +18,12 @@ char* opcodes[] = {
     "tablecreate", "tablegetelem", "tablesetelem"
 };
 
+void patchlabel(unsigned quadNo, unsigned label) {
+    assert(quadNo < curr_quad && !quads[quadNo].label);
+    quads[quadNo].label = label;
+}
+
+
 char* new_temp_name() {
 
     char* counter = itoa(temp_counter);
