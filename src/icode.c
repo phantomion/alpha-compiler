@@ -1,5 +1,6 @@
 #include "icode.h"
 #include "utilities.h"
+#include "manager.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,9 +13,9 @@ unsigned int temp_counter = 1;
 int icode_phase = 1;
 
 char* opcodes[] = {
-    "assign", "add", "sub", "mul", "div_i", "mod", "uminus", "and_i", "or_i", "not_i",
+    "assign", "add", "sub", "mul", "div", "mod", "uminus", "and", "or", "not",
     "if_eq", "if_noteq", "if_lesseq", "if_greatereq", "if_less", "if_greater",
-    "jump", "call", "param", "ret", "getretval", "funcstart", "funcend",
+    "jump", "call", "param", "return", "getretval", "funcstart", "funcend",
     "tablecreate", "tablegetelem", "tablesetelem"
 };
 
@@ -130,15 +131,21 @@ int is_func(expr* e) {
     }
 }
 
-int is_num(expr* e) {
-    if (!e) return 0;
+void check_arith(expr* e, const char* msg) {
+    if (!e) return;
 
     switch (e->type) {
-        case arithexpr_e:
-        case constnum_e:
-            return 1;
+        case constbool_e:
+        case conststring_e:
+        case nil_e:
+        case newtable_e:
+        case programfunc_e:
+        case libraryfunc_e:
+        case boolexpr_e:
+            yy_alphaerror(msg);
+            break;
         default:
-            return 0;
+            break;
     }
 }
 

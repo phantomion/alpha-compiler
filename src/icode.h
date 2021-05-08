@@ -76,8 +76,8 @@ void emit(iopcode op,
 expr* lvalue_expr(symbol* sym);
 expr* newexpr(expr_t type);
 expr* emit_iftableitem(expr* e);
+void check_arith(expr* e, const char* msg);
 int is_func(expr* e);
-int is_num(expr* e);
 symbol* new_temp();
 char* new_temp_name();
 void reset_temp();

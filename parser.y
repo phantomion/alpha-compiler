@@ -307,8 +307,8 @@ whilestmt:  WHILE LPAREN expr RPAREN { loop_counter++; } stmt {loop_counter--; }
 forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};
 
 
-returnstmt: RETURN expr SEMICOLON   {if (funcdef_counter == 0) yyerror("Usage of return outside of function"); }
-            | RETURN SEMICOLON      {if (funcdef_counter == 0) yyerror("Usage of return outside of function"); }
+returnstmt: RETURN expr SEMICOLON   {manage_return($2);}
+            | RETURN SEMICOLON      {manage_return(null);}
             ;
 
 

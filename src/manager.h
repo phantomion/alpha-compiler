@@ -7,6 +7,7 @@
 
 extern unsigned int curr_quad;
 
+int yy_alphaerror(const char* message);
 void manage_lvalue(expr* id);
 expr* manage_global_var(char* id);
 expr* manage_var(char *id);
@@ -52,6 +53,7 @@ expr* manage_tablemake(expr* elist);
 index_elem* manage_indexelem(expr* key, expr* value);
 index_elem* manage_indexelemlist(index_elem* node, index_elem* list);
 expr* manage_mapmake(index_elem* list);
+void manage_return(expr* expr);
 void print_quads();
 char* new_anonymous_function();
 #endif /* MANAGER_H */

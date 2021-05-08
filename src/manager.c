@@ -19,7 +19,7 @@ extern FILE* yyout;
 extern char* opcodes[];
 extern quad* quads;
 
-int yy_alphaerror(char* message) {
+int yy_alphaerror(const char* message) {
     icode_phase = 0;
     fprintf(yyout, COLOR_RED"Error:"COLOR_RESET" %s at token %s line %d\n", message, yytext, yylineno);
     return 1;
@@ -146,6 +146,8 @@ expr* manage_function_exit(expr* func, int locals) {
 
 expr* manage_add(expr* arg1, expr* arg2) {
 
+    check_arith(arg1, "Cannot add non-arithmetic value");
+    check_arith(arg2, "Cannot add non-arithmetic value");
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const + arg2->num_const;
     new->sym = new_temp();
@@ -156,6 +158,9 @@ expr* manage_add(expr* arg1, expr* arg2) {
 
 
 expr* manage_sub(expr* arg1, expr* arg2) {
+
+    check_arith(arg1, "Cannot subtract non-arithmetic value");
+    check_arith(arg2, "Cannot subtract non-arithmetic value");
 
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const - arg2->num_const;
@@ -168,6 +173,9 @@ expr* manage_sub(expr* arg1, expr* arg2) {
 
 expr* manage_mul(expr* arg1, expr* arg2) {
 
+    check_arith(arg1, "Cannot multiply non-arithmetic value");
+    check_arith(arg2, "Cannot multiply non-arithmetic value");
+
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const * arg2->num_const;
     new->sym = new_temp();
@@ -178,6 +186,9 @@ expr* manage_mul(expr* arg1, expr* arg2) {
 
 
 expr* manage_div(expr* arg1, expr* arg2) {
+
+    check_arith(arg1, "Cannot divide non-arithmetic value");
+    check_arith(arg2, "Cannot divide non-arithmetic value");
 
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const / arg2->num_const;
@@ -190,6 +201,9 @@ expr* manage_div(expr* arg1, expr* arg2) {
 
 expr* manage_mod(expr* arg1, expr* arg2) {
 
+    check_arith(arg1, "Cannot use modulo on non-arithmetic value");
+    check_arith(arg2, "Cannot use modulo on non-arithmetic value");
+
     expr* new = newexpr(arithexpr_e);
     new->num_const = (int)arg1->num_const % (int)arg2->num_const;
     new->sym = new_temp();
@@ -200,6 +214,7 @@ expr* manage_mod(expr* arg1, expr* arg2) {
 
 
 expr* manage_uminus(expr* ex) {
+    check_arith(ex, "Cannot use unary minus on non-arithmetic value");
     expr* new = newexpr(arithexpr_e);
     new->num_const = -(ex->num_const);
     new->sym = new_temp();
@@ -220,6 +235,7 @@ expr* manage_not(expr* ex) {
 
 
 expr* manage_pre_inc(expr* ex) {
+    check_arith(ex, "Cannot increment non-arithmetic value");
     expr* one = newexpr(constnum_e);
     one->num_const = 1;
 
@@ -245,6 +261,7 @@ expr* manage_pre_inc(expr* ex) {
 
 
 expr* manage_post_inc(expr* ex) {
+    check_arith(ex, "Cannot increment non-arithmetic value");
     expr* term = newexpr(arithexpr_e);
     term->sym = new_temp();
 
@@ -267,6 +284,7 @@ expr* manage_post_inc(expr* ex) {
 
 
 expr* manage_pre_dec(expr* ex) {
+    check_arith(ex, "Cannot decrement non-arithmetic value");
     expr* one = newexpr(constnum_e);
     one->num_const = 1;
 
@@ -292,6 +310,7 @@ expr* manage_pre_dec(expr* ex) {
 
 
 expr* manage_post_dec(expr* ex) {
+    check_arith(ex, "Cannot decrement non-arithmetic value");
     expr* term = newexpr(arithexpr_e);
     term->sym = new_temp();
 
@@ -385,6 +404,8 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
 
 expr* manage_less(expr* arg1, expr* arg2) {
 
+    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
+    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
     expr* new = newexpr(boolexpr_e);
     new->sym = new_temp();
     new->bool_const = arg1->num_const < arg2->num_const;
@@ -397,6 +418,9 @@ expr* manage_less(expr* arg1, expr* arg2) {
 }
 
 expr* manage_lesseq(expr* arg1, expr* arg2) {
+    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
+    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
+
     expr* new = newexpr(boolexpr_e);
     new->sym = new_temp();
     new->bool_const = arg1->num_const <= arg2->num_const;
@@ -409,6 +433,9 @@ expr* manage_lesseq(expr* arg1, expr* arg2) {
 }
 
 expr* manage_greater(expr* arg1, expr* arg2) {
+    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
+    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
+
     expr* new = newexpr(boolexpr_e);
     new->sym = new_temp();
     new->bool_const = arg1->num_const > arg2->num_const;
@@ -421,6 +448,9 @@ expr* manage_greater(expr* arg1, expr* arg2) {
 }
 
 expr* manage_greatereq(expr* arg1, expr* arg2) {
+    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
+    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
+
     expr* new = newexpr(boolexpr_e);
     new->sym = new_temp();
     new->bool_const = arg1->num_const >= arg2->num_const;
@@ -598,6 +628,13 @@ expr* manage_mapmake(index_elem* list) {
     }
 
     return t;
+}
+
+void manage_return(expr* expr) {
+    if (funcdef_counter == 0) {
+        yy_alphaerror("Usage of return outside of function");
+    }
+    emit(ret, null, null, expr, curr_quad, yylineno);
 }
 
 void print_arg(expr* e) {
