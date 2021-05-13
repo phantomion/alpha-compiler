@@ -33,6 +33,7 @@
     int intVal;
     char* strVal;
     double doubleVal;
+    struct stmt_t* stmtVal;
     struct expr* exprNode;
     struct call* callNode;
     struct index_elem* indexElemNode;
@@ -63,6 +64,10 @@
 %type <intVal> elseprefix
 %type <intVal> whilestart
 %type <intVal> whilecond
+%type <stmtVal> stmt
+%type <stmtVal> stmt_list
+%type <stmtVal> break_stmt
+%type <stmtVal> cont_stmt
 
 %expect 2
 
@@ -137,22 +142,29 @@
 
 program:    stmt_list;
 
+break_stmt: BREAK SEMICOLON {manage_break($$);}
+            ;
+
+cont_stmt: CONTINUE SEMICOLON {manage_continue($$);}
+           ;
+
+
 stmt:       expr SEMICOLON {reset_temp();}
-            | ifstmt
-            | whilestmt
-            | forstmt
-            | returnstmt
-            | BREAK SEMICOLON       {if (loop_counter == 0) yyerror("Usage of break outside of loop"); }
-            | CONTINUE SEMICOLON    {if (loop_counter == 0) yyerror("Usage of continue outside of loop"); }
-            | block
-            | funcdef
-            | SEMICOLON
-            | comment
+            | ifstmt       {$$ = null;}
+            | whilestmt    {$$ = null;}
+            | forstmt      {$$ = null;}
+            | returnstmt   {$$ = null;}
+            | break_stmt   {$$ = null;}
+            | cont_stmt    {$$ = null;}
+            | block        {$$ = null;}
+            | funcdef      {$$ = null;}
+            | SEMICOLON    {$$ = null;}
+            | comment      {$$ = null;}
             ;
 
 
-stmt_list:  stmt stmt_list
-            |
+stmt_list:  stmt_list stmt {manage_stmtlist($1, $2);}
+            |              {$$ = null;}
             ;
 
 
@@ -256,6 +268,10 @@ indexelem:  LCURLY expr COLON expr RCURLY {$$ = manage_indexelem($2, $4);}
             ;
 
 
+funcblockstart: | {}
+                ;
+
+
 funcname: ID {$$ = $1;}
         | {$$ = new_anonymous_function();}
         ;
@@ -313,6 +329,18 @@ ifstmt: ifprefix stmt                   { manage_ifstmt($1); }
         ;
 
 
+loopstart: | {++loop_counter;}
+           ;
+
+
+loopend:   | {--loop_counter;}
+           ;
+
+
+loopstmt:  loopstart stmt loopend {$$ = $2}
+           ;
+
+
 whilestart: WHILE { $$ = manage_whilestart(); };
             ;
 
@@ -320,8 +348,9 @@ whilestart: WHILE { $$ = manage_whilestart(); };
 whilecond: LPAREN expr RPAREN { $$ = manage_whilecond($2); }
            ;
 
-whilestmt: whilestart whilecond { loop_counter++; } stmt { loop_counter--; manage_whilestmt($1, $2); }
-       ;
+
+whilestmt: whilestart whilecond loopstmt { manage_whilestmt($1, $2, $3); }
+           ;
 
 
 forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};

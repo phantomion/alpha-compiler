@@ -402,6 +402,24 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     return new;
 }
 
+void manage_stmtlist(stmt_t* stmt, stmt_t* stmts) {
+    stmts->breaklist = mergelist(stmts->breaklist, stmt->breaklist);
+    stmts->contlist = mergelist(stmts->contlist, stmt->contlist);
+}
+
+void manage_break(stmt_t* break_quad) {
+    make_stmt(break_quad);
+    break_quad->breaklist = newlist(curr_quad);
+    emit(jump, null, null, null, 0, yylineno);
+}
+
+
+void manage_continue(stmt_t *cont_quad) {
+    make_stmt(cont_quad);
+    cont_quad->contlist = newlist(curr_quad);
+    emit(jump, null, null, null, 0, yylineno);
+}
+
 unsigned int manage_ifprefix(expr* ex) {
     emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
@@ -436,9 +454,11 @@ unsigned int manage_whilecond(expr* ex) {
     return quad;
 }
 
-void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad) {
+void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t *stmt_quad) {
     emit(jump, null, null, null, whilestart_quad, yylineno);
     patchlabel(whilecond_quad, curr_quad);
+    patchlist(stmt_quad->breaklist, curr_quad);
+    patchlist(stmt_quad->contlist, whilestart_quad);
 }
 
 expr* manage_less(expr* arg1, expr* arg2) {

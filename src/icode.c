@@ -19,6 +19,32 @@ char* opcodes[] = {
     "tablecreate", "tablegetelem", "tablesetelem"
 };
 
+void make_stmt(stmt_t* s) {
+    if(!s)
+        s = calloc(1, sizeof(stmt_t));
+    s->breaklist = 0;
+    s->contlist = 0;
+}
+
+int newlist(int i) {
+    quads[i].label = 0;
+    return i;
+}
+
+int mergelist(int l1, int l2) {
+    if (!l1)
+        return l2;
+    else if (!l2)
+        return l1;
+    else {
+        int i = l1;
+        while(quads[i].label)
+            i = quads[i].label;
+        quads[i].label = l2;
+        return l1;
+    }
+}
+
 void patchlabel(unsigned quadNo, unsigned label) {
     assert(quadNo < curr_quad);
     assert(!quads[quadNo].label);
