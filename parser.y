@@ -68,8 +68,9 @@
 %type <stmtVal> stmt_list
 %type <stmtVal> break_stmt
 %type <stmtVal> cont_stmt
+%type <stmtVal> loopstmt
 
-%expect 2
+%expect 1
 
 %start program
 
@@ -142,10 +143,10 @@
 
 program:    stmt_list;
 
-break_stmt: BREAK SEMICOLON {manage_break($$);}
+break_stmt: BREAK SEMICOLON {$$ = manage_break($$);}
             ;
 
-cont_stmt: CONTINUE SEMICOLON {manage_continue($$);}
+cont_stmt: CONTINUE SEMICOLON {$$ = manage_continue($$);}
            ;
 
 
@@ -154,8 +155,8 @@ stmt:       expr SEMICOLON {reset_temp();}
             | whilestmt    {$$ = null;}
             | forstmt      {$$ = null;}
             | returnstmt   {$$ = null;}
-            | break_stmt   {$$ = null;}
-            | cont_stmt    {$$ = null;}
+            | break_stmt   {$$ = $1;}
+            | cont_stmt    {$$ = $1;}
             | block        {$$ = null;}
             | funcdef      {$$ = null;}
             | SEMICOLON    {$$ = null;}
@@ -163,8 +164,8 @@ stmt:       expr SEMICOLON {reset_temp();}
             ;
 
 
-stmt_list:  stmt_list stmt {manage_stmtlist($1, $2);}
-            |              {$$ = null;}
+stmt_list:  stmt_list stmt  {printf("1asd\n");$$ = manage_stmtlist($1, $2);}
+            | stmt          {printf("2sda\n");$$ = $1;}
             ;
 
 
@@ -268,8 +269,10 @@ indexelem:  LCURLY expr COLON expr RCURLY {$$ = manage_indexelem($2, $4);}
             ;
 
 
-funcblockstart: | {}
-                ;
+funcblockstart: {};
+
+
+funcblockend: {};
 
 
 funcname: ID {$$ = $1;}
@@ -284,7 +287,7 @@ funcargs: LPAREN idlist RPAREN {enter_scopespace();}
         ;
 
 
-funcbody: block {$$ = functionlocal_offset;}
+funcbody: funcblockstart block funcblockend {$$ = functionlocal_offset;}
         ;
 
 
@@ -329,15 +332,15 @@ ifstmt: ifprefix stmt                   { manage_ifstmt($1); }
         ;
 
 
-loopstart: | {++loop_counter;}
+loopstart: {++loop_counter;}
            ;
 
 
-loopend:   | {--loop_counter;}
+loopend:   {--loop_counter;}
            ;
 
 
-loopstmt:  loopstart stmt loopend {$$ = $2}
+loopstmt:  loopstart stmt loopend {$$ = $2;}
            ;
 
 
@@ -353,7 +356,7 @@ whilestmt: whilestart whilecond loopstmt { manage_whilestmt($1, $2, $3); }
            ;
 
 
-forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};
+forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN loopstmt;
 
 
 returnstmt: RETURN expr SEMICOLON   {manage_return($2);}

@@ -19,11 +19,12 @@ char* opcodes[] = {
     "tablecreate", "tablegetelem", "tablesetelem"
 };
 
-void make_stmt(stmt_t* s) {
+stmt_t* make_stmt(stmt_t* s) {
     if(!s)
         s = calloc(1, sizeof(stmt_t));
     s->breaklist = 0;
     s->contlist = 0;
+    return s;
 }
 
 int newlist(int i) {
@@ -37,9 +38,11 @@ int mergelist(int l1, int l2) {
     else if (!l2)
         return l1;
     else {
+        printf("l1 %d l2 %d\n", l1, l2);
         int i = l1;
-        while(quads[i].label)
+        while(quads[i].label) {
             i = quads[i].label;
+        }
         quads[i].label = l2;
         return l1;
     }
@@ -154,7 +157,7 @@ expr* emit_iftableitem(expr* e) {
     }
     expr* result = newexpr(var_e);
     result->sym = new_temp();
-    emit(tablegetelem, e, e->index, result, curr_quad, yylineno);
+    emit(tablegetelem, e, e->index, result, 0, yylineno);
 
     return result;
 }

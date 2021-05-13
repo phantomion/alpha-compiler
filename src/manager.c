@@ -117,7 +117,7 @@ expr* manage_function(char *id) {
     funcdef_counter++;
 
     expr* new_lvalue = lvalue_expr(func);
-    emit(funcstart, null, null, new_lvalue, curr_quad, yylineno);
+    emit(funcstart, null, null, new_lvalue, 0, yylineno);
 
     return new_lvalue;
 }
@@ -139,7 +139,7 @@ expr* manage_function_exit(expr* func, int locals) {
         func->sym->total_locals = locals;
     }
 
-    emit(funcend, null, null, func, curr_quad, yylineno);
+    emit(funcend, null, null, func, 0, yylineno);
     return func;
 }
 
@@ -152,7 +152,7 @@ expr* manage_add(expr* arg1, expr* arg2) {
     new->num_const = arg1->num_const + arg2->num_const;
     new->sym = new_temp();
 
-    emit(add, arg1, arg2, new, curr_quad, yylineno);
+    emit(add, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -166,7 +166,7 @@ expr* manage_sub(expr* arg1, expr* arg2) {
     new->num_const = arg1->num_const - arg2->num_const;
     new->sym = new_temp();
 
-    emit(sub, arg1, arg2, new, curr_quad, yylineno);
+    emit(sub, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -180,7 +180,7 @@ expr* manage_mul(expr* arg1, expr* arg2) {
     new->num_const = arg1->num_const * arg2->num_const;
     new->sym = new_temp();
 
-    emit(mul, arg1, arg2, new, curr_quad, yylineno);
+    emit(mul, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -194,7 +194,7 @@ expr* manage_div(expr* arg1, expr* arg2) {
     new->num_const = arg1->num_const / arg2->num_const;
     new->sym = new_temp();
 
-    emit(div_i, arg1, arg2, new, curr_quad, yylineno);
+    emit(div_i, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -208,7 +208,7 @@ expr* manage_mod(expr* arg1, expr* arg2) {
     new->num_const = (int)arg1->num_const % (int)arg2->num_const;
     new->sym = new_temp();
 
-    emit(mod, arg1, arg2, new, curr_quad, yylineno);
+    emit(mod, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -219,7 +219,7 @@ expr* manage_uminus(expr* ex) {
     new->num_const = -(ex->num_const);
     new->sym = new_temp();
 
-    emit(uminus, ex, null, new, curr_quad, yylineno);
+    emit(uminus, ex, null, new, 0, yylineno);
     return new;
 }
 
@@ -229,7 +229,7 @@ expr* manage_not(expr* ex) {
     new->bool_const = !(ex->bool_const);
     new->sym = new_temp();
 
-    emit(not_i, ex, null, new, curr_quad, yylineno);
+    emit(not_i, ex, null, new, 0, yylineno);
     return new;
 }
 
@@ -242,18 +242,18 @@ expr* manage_pre_inc(expr* ex) {
     if(ex->type == tableitem_e) {
         expr* term = emit_iftableitem(ex);
 
-        emit(add, term, one, term, curr_quad, yylineno);
-        emit(tablesetelem, ex, ex->index, term, curr_quad, yylineno);
+        emit(add, term, one, term, 0, yylineno);
+        emit(tablesetelem, ex, ex->index, term, 0, yylineno);
 
         return term;
     }
     else {
-        emit(add, ex, one, ex, curr_quad, yylineno);
+        emit(add, ex, one, ex, 0, yylineno);
 
         expr* term = newexpr(arithexpr_e);
         term->sym = new_temp();
 
-        emit(assign, ex, null, term, curr_quad, yylineno);
+        emit(assign, ex, null, term, 0, yylineno);
 
         return term;
     }
@@ -271,13 +271,13 @@ expr* manage_post_inc(expr* ex) {
     if(ex->type == tableitem_e) {
         expr* val = emit_iftableitem(ex);
 
-        emit(assign, val, null, term, curr_quad, yylineno);
-        emit(add, val, one, val, curr_quad, yylineno);
-        emit(tablesetelem, ex, ex->index, val, curr_quad, yylineno);
+        emit(assign, val, null, term, 0, yylineno);
+        emit(add, val, one, val, 0, yylineno);
+        emit(tablesetelem, ex, ex->index, val, 0, yylineno);
     }
     else {
-        emit(assign, ex, null, term, curr_quad, yylineno);
-        emit(add, ex, one, ex, curr_quad, yylineno);
+        emit(assign, ex, null, term, 0, yylineno);
+        emit(add, ex, one, ex, 0, yylineno);
     }
     return term;
 }
@@ -291,18 +291,18 @@ expr* manage_pre_dec(expr* ex) {
     if(ex->type == tableitem_e) {
         expr* term = emit_iftableitem(ex);
 
-        emit(sub, term, one, term, curr_quad, yylineno);
-        emit(tablesetelem, ex, ex->index, term, curr_quad, yylineno);
+        emit(sub, term, one, term, 0, yylineno);
+        emit(tablesetelem, ex, ex->index, term, 0, yylineno);
 
         return term;
     }
     else {
-        emit(sub, ex, one, ex, curr_quad, yylineno);
+        emit(sub, ex, one, ex, 0, yylineno);
 
         expr* term = newexpr(arithexpr_e);
         term->sym = new_temp();
 
-        emit(assign, ex, null, term, curr_quad, yylineno);
+        emit(assign, ex, null, term, 0, yylineno);
 
         return term;
     }
@@ -320,13 +320,13 @@ expr* manage_post_dec(expr* ex) {
     if(ex->type == tableitem_e) {
         expr* val = emit_iftableitem(ex);
 
-        emit(assign, val, null, term, curr_quad, yylineno);
-        emit(sub, val, one, val, curr_quad, yylineno);
-        emit(tablesetelem, ex, ex->index, val, curr_quad, yylineno);
+        emit(assign, val, null, term, 0, yylineno);
+        emit(sub, val, one, val, 0, yylineno);
+        emit(tablesetelem, ex, ex->index, val, 0, yylineno);
     }
     else {
-        emit(assign, ex, null, term, curr_quad, yylineno);
-        emit(sub, ex, one, ex, curr_quad, yylineno);
+        emit(assign, ex, null, term, 0, yylineno);
+        emit(sub, ex, one, ex, 0, yylineno);
     }
     return term;
 }
@@ -386,38 +386,51 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     if (is_func(lvalue)) yy_alphaerror("Cannot assign to function");
 
     if (lvalue && lvalue->type == tableitem_e) {
-        emit(tablesetelem, lvalue, lvalue->index, ex, curr_quad, yylineno);
+        emit(tablesetelem, lvalue, lvalue->index, ex, 0, yylineno);
         expr* new = emit_iftableitem(lvalue);
         new->type = assignexpr_e;
         return new;
     }
 
-    emit(assign, ex, null, lvalue, curr_quad, yylineno);
+    emit(assign, ex, null, lvalue, 0, yylineno);
 
     expr* new = newexpr(assignexpr_e);
     new->sym = new_temp();
     new->num_const = ex->num_const;
 
-    emit(assign, lvalue, null, new, curr_quad, yylineno);
+    emit(assign, lvalue, null, new, 0, yylineno);
     return new;
 }
 
-void manage_stmtlist(stmt_t* stmt, stmt_t* stmts) {
+stmt_t* manage_stmtlist(stmt_t* stmts, stmt_t* stmt) {
+    if (!stmts) {
+        return null;
+    }
+    if (!stmt) {
+        return null;
+    }
+    printf("stmts bre %d\n", stmts->breaklist);
+    printf("stmts cont %d\n", stmts->contlist);
+    printf("stmt bre %d\n", stmts->breaklist);
+    printf("stmt cont %d\n", stmts->contlist);
     stmts->breaklist = mergelist(stmts->breaklist, stmt->breaklist);
     stmts->contlist = mergelist(stmts->contlist, stmt->contlist);
+    return stmts;
 }
 
-void manage_break(stmt_t* break_quad) {
-    make_stmt(break_quad);
+stmt_t* manage_break(stmt_t* break_quad) {
+    break_quad = make_stmt(break_quad);
     break_quad->breaklist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
+    return break_quad;
 }
 
 
-void manage_continue(stmt_t *cont_quad) {
-    make_stmt(cont_quad);
+stmt_t* manage_continue(stmt_t* cont_quad) {
+    cont_quad = make_stmt(cont_quad);
     cont_quad->contlist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
+    return cont_quad;
 }
 
 unsigned int manage_ifprefix(expr* ex) {
@@ -470,9 +483,9 @@ expr* manage_less(expr* arg1, expr* arg2) {
     new->bool_const = arg1->num_const < arg2->num_const;
 
     emit(if_less, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(0), null, new, 0, yylineno);
     emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(1), null, new, 0, yylineno);
     return new;
 }
 
@@ -485,9 +498,9 @@ expr* manage_lesseq(expr* arg1, expr* arg2) {
     new->bool_const = arg1->num_const <= arg2->num_const;
 
     emit(if_lesseq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(0), null, new, 0, yylineno);
     emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(1), null, new, 0, yylineno);
     return new;
 }
 
@@ -500,9 +513,9 @@ expr* manage_greater(expr* arg1, expr* arg2) {
     new->bool_const = arg1->num_const > arg2->num_const;
 
     emit(if_greater, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(0), null, new, 0, yylineno);
     emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(1), null, new, 0, yylineno);
     return new;
 }
 
@@ -515,9 +528,9 @@ expr* manage_greatereq(expr* arg1, expr* arg2) {
     new->bool_const = arg1->num_const >= arg2->num_const;
 
     emit(if_greatereq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(0), null, new, 0, yylineno);
     emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(1), null, new, 0, yylineno);
     return new;
 }
 
@@ -527,9 +540,9 @@ expr* manage_eq(expr* arg1, expr* arg2) {
     new->bool_const = arg1->num_const == arg2->num_const;
 
     emit(if_eq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(0), null, new, 0, yylineno);
     emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(1), null, new, 0, yylineno);
     return new;
 }
 
@@ -539,9 +552,9 @@ expr* manage_neq(expr* arg1, expr* arg2) {
     new->bool_const = arg1->num_const != arg2->num_const;
 
     emit(if_noteq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(0), null, new, 0, yylineno);
     emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool(1), null, new, 0, yylineno);
     return new;
 }
 
@@ -550,7 +563,7 @@ expr* manage_or(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const || arg2->num_const;
 
-    emit(or_i, arg1, arg2, new, curr_quad, yylineno);
+    emit(or_i, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -559,7 +572,7 @@ expr* manage_and(expr* arg1, expr* arg2) {
     new->sym = new_temp();
     new->bool_const = arg1->num_const && arg2->num_const;
 
-    emit(and_i, arg1, arg2, new, curr_quad, yylineno);
+    emit(and_i, arg1, arg2, new, 0, yylineno);
     return new;
 }
 
@@ -591,14 +604,14 @@ expr* make_call(expr* lv, expr* reversed_elist) {
     expr* func = emit_iftableitem(lv);
 
     while (reversed_elist) {
-        emit(param, null, null, reversed_elist, curr_quad, yylineno);
+        emit(param, null, null, reversed_elist, 0, yylineno);
         reversed_elist = reversed_elist->next;
     }
 
-    emit(call, null, null, func, curr_quad, yylineno);
+    emit(call, null, null, func, 0, yylineno);
     expr* result = newexpr(var_e);
     result->sym = new_temp();
-    emit(getretval, null, null, result, curr_quad, yylineno);
+    emit(getretval, null, null, result, 0, yylineno);
 
     return result;
 }
@@ -651,10 +664,10 @@ expr* manage_tablemake(expr* elist) {
     int i = 0;
 
     t->sym = new_temp();
-    emit(tablecreate, null, null, t, curr_quad, yylineno);
+    emit(tablecreate, null, null, t, 0, yylineno);
 
     while (elist) {
-        emit(tablesetelem, manage_number(i++), elist, t, curr_quad, yylineno);
+        emit(tablesetelem, manage_number(i++), elist, t, 0, yylineno);
         elist = elist->next;
     }
 
@@ -679,10 +692,10 @@ index_elem* manage_indexelemlist(index_elem* node, index_elem* list) {
 expr* manage_mapmake(index_elem* list) {
     expr* t = newexpr(newtable_e);
     t->sym = new_temp();
-    emit(tablecreate, null, null, t, curr_quad, yylineno);
+    emit(tablecreate, null, null, t, 0, yylineno);
 
     while(list) {
-        emit(tablesetelem, list->key, list->value, t, curr_quad, yylineno);
+        emit(tablesetelem, list->key, list->value, t, 0, yylineno);
         list = list->next;
     }
 
@@ -693,7 +706,7 @@ void manage_return(expr* expr) {
     if (funcdef_counter == 0) {
         yy_alphaerror("Usage of return outside of function");
     }
-    emit(ret, null, null, expr, curr_quad, yylineno);
+    emit(ret, null, null, expr, 0, yylineno);
 }
 
 void print_arg(expr* e) {

@@ -78,7 +78,7 @@ typedef struct stmt_t {
     int contlist;
 } stmt_t;
 
-void make_stmt(stmt_t* s);
+stmt_t* make_stmt(stmt_t* s);
 int newlist(int i);
 int mergelist(int l1, int l2);
 void patchlabel(unsigned quadNo, unsigned label);
