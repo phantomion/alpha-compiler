@@ -669,6 +669,41 @@ expr* manage_mapmake(index_elem* list) {
     return t;
 }
 
+
+int manage_N() {
+    int temp = curr_quad;
+
+    emit(jump, null, null, null, 0, yylineno);
+
+    return temp;
+}
+
+
+int manage_M() {
+    return curr_quad;
+}
+
+
+void manage_forprefix(for_stmt* prefix, int M, expr* ex) {
+    prefix->test = M;
+    prefix->enter = curr_quad;
+    emit(if_eq, ex, manage_bool(1), null, 0, yylineno);
+}
+
+
+void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t* st, int N3) {
+    --loop_counter;
+
+    patchlabel(prefix->enter, N2+1);
+    patchlabel(N1, curr_quad);
+    patchlabel(N2, prefix->test);
+    patchlabel(N3, N1+1);
+
+    patchlist(st->breaklist, curr_quad);
+    patchlist(st->contlist, N1+1);
+}
+
+
 void manage_return(expr* expr) {
     if (funcdef_counter == 0) {
         yy_alphaerror("Usage of return outside of function");

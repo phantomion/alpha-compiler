@@ -324,7 +324,16 @@ whilestmt: whilestart whilecond { loop_counter++; } stmt { loop_counter--; manag
        ;
 
 
-forstmt:    FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN {loop_counter++;} stmt {loop_counter--;};
+N:          {$$ = manage_N();};
+
+
+M:          {$$ = manage_M();};
+
+
+forprefix:  FOR LPAREN elist SEMICOLON M expr SEMICOLON {manage_forprefix($$, $5, $6);};
+
+
+forstmt:    forprefix N elist RPAREN {++loop_counter;} N stmt N {manage_forstmt($1, $2, $6, $7, $8);};
 
 
 returnstmt: RETURN expr SEMICOLON   {manage_return($2);}

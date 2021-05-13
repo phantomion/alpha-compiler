@@ -51,6 +51,11 @@ typedef struct quad {
     unsigned int line;
 }quad;
 
+typedef struct for_stmt {
+    int test;
+    int enter;
+}for_stmt;
+
 struct call {
     expr* elist;
     unsigned method;
