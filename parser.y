@@ -11,6 +11,7 @@
     extern char* yytext;
     extern FILE* yyin;
     extern FILE* yyout;
+    extern char* yyfile;
 
     extern int scope;
     extern int funcdef_counter;
@@ -206,8 +207,8 @@ lvalue:     ID          {$$ = manage_var($1);}
 
 member:     lvalue POINT ID                 {$$ = manage_member_item($1, $3);}
             | lvalue LBRACKET expr RBRACKET {$$ = manage_array_item($1, $3); }
-            | call POINT ID
-            | call LBRACKET expr RBRACKET
+            | call POINT ID                 {$$ = manage_member_item($1, $3);}
+            | call LBRACKET expr RBRACKET   {$$ = manage_array_item($1, $3);}
             ;
 
 
@@ -341,7 +342,7 @@ comment: COMMENT
 
 int yyerror(char* message) {
     icode_phase = 0;
-    fprintf(yyout, COLOR_RED"Error:"COLOR_RESET" %s at token %s line %d\n", message, yytext, yylineno);
+    fprintf(yyout, "%s:%d: "COLOR_RED"error:"COLOR_RESET" %s at token %s\n", yyfile, yylineno, message, yytext);
     return 1;
 }
 
@@ -371,6 +372,7 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Cannot read file: %s\n", argv[1]);
             return 1;
         }
+        yyfile = argv[1];
     }
     else yyin = stdin;
 

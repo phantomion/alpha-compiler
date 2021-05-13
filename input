@@ -2,51 +2,42 @@ local die = 2;
 x = 2;
 x++;
 print(typeof(x));
-print--;
 ::print(::typeof(::x));
 function foo() {
-    function qq(bar, qq) {
-        local print = y;
+    function qq(bar) {
         return qq;
     }
-    function foo(bar,takos, takos, print, foo) {
+    function foo(bar, takos, foo) {
         takos--;
+        bar = 5;
+        foo = 5;
+        x = 5;
         local foo = 2;
         return bar + foo;
         function h() {
-            return bar + takos;
+            /*return bar + takos;*/
         }
-        ::print--;
     }
-    local foo++;
     local x++;
-    function foo() {}
     mhtsos = 2 + 5 * 3;
     {
         function yes(sad) {
             local d = 10;
         }
     }
-    ::a;
     ::x;
     {
         local x=::x;
     }
 }
-++foo;
-local foo = 10;
 input();
-lul = "Illegal escape char(\\m) \m";
-lul = "Illegal escape char\n \\n";
-return th + mana + sou;
 
 for(i = 0; i < 10; i++) {
     break;
 }
-continue;
-for(;;) {}
 
 // this is a comment
 /* multi
    line
    comment
+   */

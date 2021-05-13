@@ -121,6 +121,13 @@ expr* newexpr(expr_t type) {
     return e;
 }
 
+unsigned int istempname(char* s) {
+    return *s == '_';
+}
+
+unsigned int istempexpr(expr* e) {
+    return e->sym && istempname(e->sym->name);
+}
 
 expr* emit_iftableitem(expr* e) {
     if (e && e->type != tableitem_e) {

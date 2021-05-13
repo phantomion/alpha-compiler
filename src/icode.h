@@ -77,6 +77,8 @@ void patchlabel(unsigned quadNo, unsigned label);
 void patchlist(int list, int label);
 expr* lvalue_expr(symbol* sym);
 expr* newexpr(expr_t type);
+unsigned int istempname(char* s);
+unsigned int istempexpr(expr* e);
 expr* emit_iftableitem(expr* e);
 void check_arith(expr* e, const char* msg);
 int is_func(expr* e);
