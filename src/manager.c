@@ -695,6 +695,7 @@ void manage_return(expr* expr) {
 }
 
 stmt_t* manage_break() {
+    if (!loop_counter) yy_alphaerror("Cannot use break outside of loop");
     stmt_t* new = calloc(1, sizeof(stmt_t));
     new->breaklist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
@@ -702,6 +703,7 @@ stmt_t* manage_break() {
 }
 
 stmt_t* manage_continue() {
+    if (!loop_counter) yy_alphaerror("Cannot use continue outside of loop");
     stmt_t* new = calloc(1, sizeof(stmt_t));
     new->contlist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);

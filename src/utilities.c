@@ -31,6 +31,7 @@ char* libfuncs[] = {
 symbol* symtable[MAX];
 symbol* scope_link[MAX];
 functionoffset_stack* stack = null;
+loopcounter_stack* loop_stack = null;
 
 void reset_formalarg_offset() { formalarg_offset = 0; }
 void reset_functionlocal_offset() {
@@ -318,6 +319,28 @@ void initialize_libfuncs() {
     for (i = 0; i < 12; i++) {
         symtable_insert(libfuncs[i], 5);
     }
+}
+
+void loopcounter_push(int loopcounter) {
+    if (!loop_stack) {
+        loop_stack = calloc(1, sizeof(loopcounter_stack));
+        loop_stack->loopcounter = loopcounter;
+        loop_stack->next = null;
+        return;
+    }
+    loopcounter_stack* new = calloc(1, sizeof(loopcounter_stack));
+    new->loopcounter = loopcounter;
+    new->next = loop_stack;
+    loop_stack = new;
+}
+
+int loopcounter_pop() {
+    if (!loop_stack) return 0;
+    loopcounter_stack* pop = loop_stack;
+    loop_stack = loop_stack->next;
+    int loopcounter = pop->loopcounter;
+    free(pop);
+    return loopcounter;
 }
 
 void function_push(int offset) {
