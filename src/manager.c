@@ -691,7 +691,7 @@ void manage_forprefix(for_stmt* prefix, int M, expr* ex) {
 }
 
 
-void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t* st, int N3) {
+void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t st, int N3) {
     --loop_counter;
 
     patchlabel(prefix->enter, N2+1);
@@ -699,8 +699,8 @@ void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t* st, int N3) {
     patchlabel(N2, prefix->test);
     patchlabel(N3, N1+1);
 
-    patchlist(st->breaklist, curr_quad);
-    patchlist(st->contlist, N1+1);
+    patchlist(st.breaklist, curr_quad);
+    patchlist(st.contlist, N1+1);
 }
 
 
