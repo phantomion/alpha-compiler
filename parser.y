@@ -7,6 +7,7 @@
     int yyerror(char* message);
     int yylex();
 
+
     extern int yylineno;
     extern char* yytext;
     extern FILE* yyin;
@@ -26,6 +27,12 @@
 
 %}
 
+%code requires {
+    typedef struct stmt_t {
+        int breaklist;
+        int contlist;
+    } stmt_t;
+}
 
 %defines
 %output "./src/parser.c"
@@ -33,7 +40,7 @@
     int intVal;
     char* strVal;
     double doubleVal;
-    struct stmt_t* stmtVal;
+    struct stmt_t stmtVal;
     struct expr* exprNode;
     struct call* callNode;
     struct index_elem* indexElemNode;
@@ -150,22 +157,22 @@ cont_stmt: CONTINUE SEMICOLON {$$ = manage_continue($$);}
            ;
 
 
-stmt:       expr SEMICOLON {reset_temp();}
-            | ifstmt       {$$ = null;}
-            | whilestmt    {$$ = null;}
-            | forstmt      {$$ = null;}
-            | returnstmt   {$$ = null;}
+stmt:       expr SEMICOLON {$$ = manage_stmt($$); printf("%d\n",$$.breaklist);reset_temp();}
+            | ifstmt        {$$ = manage_stmt($$);}
+            | whilestmt  {$$ = manage_stmt($$);}
+            | forstmt {$$ = manage_stmt($$);}
+            | returnstmt {$$ = manage_stmt($$);}
             | break_stmt   {$$ = $1;}
             | cont_stmt    {$$ = $1;}
-            | block        {$$ = null;}
-            | funcdef      {$$ = null;}
-            | SEMICOLON    {$$ = null;}
-            | comment      {$$ = null;}
+            | block {$$ = manage_stmt($$);}
+            | funcdef {$$ = manage_stmt($$);}
+            | SEMICOLON {$$ = manage_stmt($$);}
+            | comment {$$ = manage_stmt($$);}
             ;
 
 
-stmt_list:  stmt_list stmt  {printf("1asd\n");$$ = manage_stmtlist($1, $2);}
-            | stmt          {printf("2sda\n");$$ = $1;}
+stmt_list:  stmt {printf("2\n");$$ = $1;}
+            |stmt_list stmt  {printf("1\n");$$ = manage_stmtlist($1, $2);}
             ;
 
 

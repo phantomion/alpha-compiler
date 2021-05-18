@@ -73,12 +73,7 @@ void emit(iopcode op,
           unsigned int line
         );
 
-typedef struct stmt_t {
-    int breaklist;
-    int contlist;
-} stmt_t;
-
-stmt_t* make_stmt(stmt_t* s);
+void make_stmt(stmt_t* s);
 int newlist(int i);
 int mergelist(int l1, int l2);
 void patchlabel(unsigned quadNo, unsigned label);

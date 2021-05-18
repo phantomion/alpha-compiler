@@ -1,6 +1,7 @@
 #include "icode.h"
 #include "utilities.h"
 #include "manager.h"
+#include "parser.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,12 +20,9 @@ char* opcodes[] = {
     "tablecreate", "tablegetelem", "tablesetelem"
 };
 
-stmt_t* make_stmt(stmt_t* s) {
-    if(!s)
-        s = calloc(1, sizeof(stmt_t));
+void make_stmt(stmt_t* s) {
     s->breaklist = 0;
     s->contlist = 0;
-    return s;
 }
 
 int newlist(int i) {

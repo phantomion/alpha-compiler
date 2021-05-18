@@ -1,6 +1,7 @@
 #include "manager.h"
 #include "icode.h"
 #include "utilities.h"
+#include "parser.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,9 @@ extern FILE* yyout;
 
 extern char* opcodes[];
 extern quad* quads;
+
+int init_lists = 0;
+int init_lists2 = 0;
 
 int yy_alphaerror(const char* message) {
     icode_phase = 0;
@@ -402,33 +406,31 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     return new;
 }
 
-stmt_t* manage_stmtlist(stmt_t* stmts, stmt_t* stmt) {
-    if (!stmts) {
-        return null;
+stmt_t manage_stmtlist(stmt_t stmts, stmt_t stmt) {
+    if (!init_lists2) {
+        init_lists2 = 1;
+        stmt = (const struct stmt_t) {0};
     }
-    if (!stmt) {
-        return null;
-    }
-    printf("stmts bre %d\n", stmts->breaklist);
-    printf("stmts cont %d\n", stmts->contlist);
-    printf("stmt bre %d\n", stmts->breaklist);
-    printf("stmt cont %d\n", stmts->contlist);
-    stmts->breaklist = mergelist(stmts->breaklist, stmt->breaklist);
-    stmts->contlist = mergelist(stmts->contlist, stmt->contlist);
+    printf("vre %d\n", stmts.breaklist);
+    printf("vre %d\n", stmts.contlist);
+    stmts.breaklist = mergelist(stmts.breaklist, stmt.breaklist);
+    stmts.contlist = mergelist(stmts.contlist, stmt.contlist);
+    printf("vre2 %d\n", stmts.breaklist);
+    printf("vre2 %d\n", stmts.contlist);
     return stmts;
 }
 
-stmt_t* manage_break(stmt_t* break_quad) {
-    break_quad = make_stmt(break_quad);
-    break_quad->breaklist = newlist(curr_quad);
+stmt_t manage_break(stmt_t break_quad) {
+    make_stmt(&break_quad);
+    break_quad.breaklist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
     return break_quad;
 }
 
 
-stmt_t* manage_continue(stmt_t* cont_quad) {
-    cont_quad = make_stmt(cont_quad);
-    cont_quad->contlist = newlist(curr_quad);
+stmt_t manage_continue(stmt_t cont_quad) {
+    make_stmt(&cont_quad);
+    cont_quad.contlist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
     return cont_quad;
 }
@@ -467,11 +469,11 @@ unsigned int manage_whilecond(expr* ex) {
     return quad;
 }
 
-void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t *stmt_quad) {
+void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t stmt_quad) {
     emit(jump, null, null, null, whilestart_quad, yylineno);
     patchlabel(whilecond_quad, curr_quad);
-    patchlist(stmt_quad->breaklist, curr_quad);
-    patchlist(stmt_quad->contlist, whilestart_quad);
+    patchlist(stmt_quad.breaklist, curr_quad);
+    patchlist(stmt_quad.contlist, whilestart_quad);
 }
 
 expr* manage_less(expr* arg1, expr* arg2) {
@@ -709,6 +711,16 @@ void manage_return(expr* expr) {
     emit(ret, null, null, expr, 0, yylineno);
 }
 
+stmt_t manage_stmt(stmt_t stmt) {
+    if (!init_lists) {
+        init_lists = 1;
+        printf("%d\n", stmt.breaklist);
+        stmt = (const struct stmt_t) {0};
+        printf("%d\n", stmt.breaklist);
+    }
+    return stmt;
+}
+
 void print_arg(expr* e) {
     switch (e->type) {
         case var_e:
@@ -763,7 +775,7 @@ void print_quads() {
             print_arg(quads[i].arg2);
         }
         else printf("%-10s", " ");
-        if (quads[i].label != i) {
+        if (quads[i].label) {
             printf("%-10d", quads[i].label);
         }
         else printf("%-10s", " ");
