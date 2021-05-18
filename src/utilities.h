@@ -59,6 +59,10 @@ typedef struct functionoffset_stack {
     struct functionoffset_stack* next;
 }functionoffset_stack;
 
+typedef struct loopcounter_stack {
+    int loopcounter;
+    struct loopcounter_stack* next;
+}loopcounter_stack;
 
 char* itoa(int val);
 int check_for_libfunc(const char* name);
@@ -80,6 +84,9 @@ void exit_scopespace();
 void reset_formalarg_offset();
 void reset_functionlocal_offset();
 void save_functionlocal_offset();
+
+void loopcounter_push(int loopcounter);
+int loopcounter_pop();
 
 void function_push(int offset);
 int function_pop();

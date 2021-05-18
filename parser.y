@@ -287,7 +287,15 @@ funcargs: LPAREN idlist RPAREN {enter_scopespace();}
         ;
 
 
-funcbody: block {$$ = functionlocal_offset;}
+funcblockstart: {loopcounter_push(loop_counter); loop_counter = 0;}
+              ;
+
+
+funcblockend: {loop_counter = loopcounter_pop();}
+            ;
+
+
+funcbody: funcblockstart block funcblockend {$$ = functionlocal_offset;}
         ;
 
 
