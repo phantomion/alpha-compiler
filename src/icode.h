@@ -63,6 +63,11 @@ typedef struct index_elem {
     struct index_elem* next;
 }index_elem;
 
+typedef struct stmt_t {
+    int breaklist;
+    int contlist;
+}stmt_t;
+
 void expand();
 
 void emit(iopcode op,
@@ -73,6 +78,8 @@ void emit(iopcode op,
           unsigned int line
         );
 
+int newlist(int i);
+int mergelist(int l1, int l2);
 void patchlabel(unsigned quadNo, unsigned label);
 void patchlist(int list, int label);
 expr* lvalue_expr(symbol* sym);

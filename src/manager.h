@@ -38,7 +38,7 @@ unsigned int manage_elseprefix();
 void manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad);
 unsigned int manage_whilestart();
 unsigned int manage_whilecond(expr* ex);
-void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad);
+void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t* stmt);
 expr* manage_logical(expr* arg1, expr* arg2, iopcode op);
 expr* manage_less(expr* arg1, expr* arg2);
 expr* manage_lesseq(expr* arg1, expr* arg2);
@@ -61,6 +61,9 @@ index_elem* manage_indexelem(expr* key, expr* value);
 index_elem* manage_indexelemlist(index_elem* node, index_elem* list);
 expr* manage_mapmake(index_elem* list);
 void manage_return(expr* expr);
+stmt_t* manage_break();
+stmt_t* manage_continue();
+stmt_t* manage_stmtlist(stmt_t* stmt_list, stmt_t* stmt);
 void print_quads();
 char* new_anonymous_function();
 #endif /* MANAGER_H */

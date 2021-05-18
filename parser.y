@@ -37,6 +37,7 @@
     struct expr* exprNode;
     struct call* callNode;
     struct index_elem* indexElemNode;
+    struct stmt_t* stmtNode;
 }
 
 %type <exprNode> lvalue
@@ -64,8 +65,13 @@
 %type <intVal> elseprefix
 %type <intVal> whilestart
 %type <intVal> whilecond
+%type <stmtNode> stmt
+%type <stmtNode> stmt_list
+%type <stmtNode> continue_stmt
+%type <stmtNode> break_stmt
+%type <stmtNode> block
 
-%expect 2
+%expect 1
 
 %start program
 
@@ -138,23 +144,31 @@
 
 program:    stmt_list;
 
-stmt:       expr SEMICOLON {reset_temp();}
-            | ifstmt
-            | whilestmt
-            | forstmt
-            | returnstmt
-            | BREAK SEMICOLON       {if (loop_counter == 0) yyerror("Usage of break outside of loop"); }
-            | CONTINUE SEMICOLON    {if (loop_counter == 0) yyerror("Usage of continue outside of loop"); }
-            | block
-            | funcdef
-            | SEMICOLON
-            | comment
+stmt:       expr SEMICOLON {$$ = null; reset_temp();}
+            | ifstmt {$$ = null;}
+            | whilestmt {$$ = null;}
+            | forstmt {$$ = null;}
+            | returnstmt {$$ = null;}
+            | break_stmt    {$$ = $1;}
+            | continue_stmt {$$ = $1;}
+            | block {$$ = $1;}
+            | funcdef {$$ = null;}
+            | SEMICOLON {$$ = null;}
+            | comment {$$ = null;}
             ;
 
 
-stmt_list:  stmt stmt_list
-            |
+stmt_list:  stmt {$$ = $1;}
+            | stmt_list stmt {$$ = manage_stmtlist($1, $2);}
             ;
+
+
+break_stmt: BREAK SEMICOLON {$$ = manage_break();}
+          ;
+
+
+continue_stmt: CONTINUE SEMICOLON {$$ = manage_continue();}
+             ;
 
 
 expr:       assignexpr          {$$ = $1;}
@@ -277,8 +291,8 @@ funcdef: funcprefix funcargs funcbody {manage_function_exit($1, $3);}
          ;
 
 
-block: LCURLY { scope++; } stmt_list RCURLY {hide_scope(scope--); }
-       | LCURLY RCURLY
+block: LCURLY { scope++; } stmt_list RCURLY {hide_scope(scope--); $$ = $3;}
+       | LCURLY RCURLY {$$ = null;}
        ;
 
 
@@ -321,7 +335,7 @@ whilestart: WHILE { $$ = manage_whilestart(); };
 whilecond: LPAREN expr RPAREN { $$ = manage_whilecond($2); }
            ;
 
-whilestmt: whilestart whilecond { loop_counter++; } stmt { loop_counter--; manage_whilestmt($1, $2); }
+whilestmt: whilestart whilecond { loop_counter++; } stmt { loop_counter--; manage_whilestmt($1, $2, $4); }
        ;
 
 

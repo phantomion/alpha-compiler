@@ -25,6 +25,22 @@ void patchlabel(unsigned quadNo, unsigned label) {
     quads[quadNo].label = label;
 }
 
+int newlist(int i) {
+    quads[i].label = 0;
+    return i;
+}
+
+int mergelist(int l1, int l2) {
+    if (!l1) return l2;
+    if (!l2) return l1;
+    int i = l1;
+    while (quads[i].label) {
+        i = quads[i].label;
+    }
+    quads[i].label = l2;
+    return l1;
+}
+
 void patchlist(int list, int label) {
         while(list) {
                 int next = quads[list].label;

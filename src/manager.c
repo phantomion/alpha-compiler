@@ -443,9 +443,12 @@ unsigned int manage_whilecond(expr* ex) {
     return quad;
 }
 
-void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad) {
+void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t* stmt) {
     emit(jump, null, null, null, whilestart_quad, yylineno);
     patchlabel(whilecond_quad, curr_quad);
+    if (!stmt) return;
+    patchlist(stmt->breaklist, curr_quad);
+    patchlist(stmt->contlist, whilestart_quad);
 }
 
 expr* manage_less(expr* arg1, expr* arg2) {
@@ -689,6 +692,30 @@ void manage_return(expr* expr) {
         yy_alphaerror("Usage of return outside of function");
     }
     emit(ret, null, null, expr, curr_quad, yylineno);
+}
+
+stmt_t* manage_break() {
+    stmt_t* new = calloc(1, sizeof(stmt_t));
+    new->breaklist = newlist(curr_quad);
+    emit(jump, null, null, null, 0, yylineno);
+    return new;
+}
+
+stmt_t* manage_continue() {
+    stmt_t* new = calloc(1, sizeof(stmt_t));
+    new->contlist = newlist(curr_quad);
+    emit(jump, null, null, null, 0, yylineno);
+    return new;
+}
+
+stmt_t* manage_stmtlist(stmt_t* stmt_list, stmt_t* stmt) {
+    if (!stmt_list && !stmt) return null;
+    if (!stmt_list) return stmt;
+    if (!stmt) return stmt_list;
+    stmt_t* stmts = calloc(1, sizeof(stmt_t));
+    stmts->breaklist = mergelist(stmt_list->breaklist, stmt->breaklist);
+    stmts->contlist = mergelist(stmt_list->contlist, stmt->contlist);
+    return stmts;
 }
 
 void print_arg(expr* e) {

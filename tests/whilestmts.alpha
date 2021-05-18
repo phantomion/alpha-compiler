@@ -1,4 +1,8 @@
+a = 2;
+while (x> 2) break;
 while(x < 3) {
     z++;
+    continue;
     x++;
+    break;
 }
