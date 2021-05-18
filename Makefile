@@ -46,6 +46,7 @@ test:
 	make run ARGS=tests/tableitem_quads.alpha
 	make run ARGS=tests/ifstmts.alpha
 	make run ARGS=tests/whilestmts.alpha
+	make run ARGS=tests/forstmts.alpha
 	make run ARGS=tests/calls.alpha
 
 run:

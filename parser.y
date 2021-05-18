@@ -38,6 +38,7 @@
     struct call* callNode;
     struct index_elem* indexElemNode;
     struct stmt_t* stmtNode;
+    struct for_stmt* forNode;
 }
 
 %type <exprNode> lvalue
@@ -70,6 +71,9 @@
 %type <stmtNode> continue_stmt
 %type <stmtNode> break_stmt
 %type <stmtNode> block
+%type <intVal> N
+%type <intVal> M
+%type <forNode> forprefix
 
 %expect 1
 
@@ -345,7 +349,7 @@ N:          {$$ = manage_N();};
 M:          {$$ = manage_M();};
 
 
-forprefix:  FOR LPAREN elist SEMICOLON M expr SEMICOLON {manage_forprefix($$, $5, $6);};
+forprefix:  FOR LPAREN elist SEMICOLON M expr SEMICOLON {$$ = manage_forprefix($5, $6);};
 
 
 forstmt:    forprefix N elist RPAREN {++loop_counter;} N stmt N {manage_forstmt($1, $2, $6, $7, $8);};

@@ -702,14 +702,16 @@ int manage_M() {
 }
 
 
-void manage_forprefix(for_stmt* prefix, int M, expr* ex) {
+for_stmt* manage_forprefix(int M, expr* ex) {
+    for_stmt* prefix = calloc(1, sizeof(for_stmt));
     prefix->test = M;
     prefix->enter = curr_quad;
     emit(if_eq, ex, manage_bool(1), null, 0, yylineno);
+    return prefix;
 }
 
 
-void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t st, int N3) {
+void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t* st, int N3) {
     --loop_counter;
 
     patchlabel(prefix->enter, N2+1);
@@ -717,8 +719,9 @@ void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t st, int N3) {
     patchlabel(N2, prefix->test);
     patchlabel(N3, N1+1);
 
-    patchlist(st.breaklist, curr_quad);
-    patchlist(st.contlist, N1+1);
+    if(!st) return;
+    patchlist(st->breaklist, curr_quad);
+    patchlist(st->contlist, N1+1);
 }
 
 
