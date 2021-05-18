@@ -1,6 +1,8 @@
 %{
     #include "parser.h"
+    #include "icode.h"
 
+    extern int icode_phase;
 %}
 
 %option header-file="./src/analyzer.h"
@@ -88,6 +90,7 @@ COMMENT     \/\/.*$
 
 <STR>\n        {
     BEGIN(INITIAL);
+    icode_phase = 0;
     fprintf(yyout, "Unterminated string constant at line %d.\n", yylineno - 1);
 }
 
@@ -179,8 +182,8 @@ COMMENT     \/\/.*$
 
 <IN_COMMENT>\n      {}
 <IN_COMMENT>.       {}
-<IN_COMMENT><<EOF>> { BEGIN(INITIAL); fprintf(yyout, "Open multiline comment at EOF\n"); }
+<IN_COMMENT><<EOF>> { BEGIN(INITIAL); icode_phase = 0; fprintf(yyout, "Open multiline comment at EOF\n"); }
 
 {WS}            {}
-.               { fprintf(yyout, "Unknown identifier %s at line %d\n", yytext, yylineno); }
+.               { icode_phase = 0; fprintf(yyout, "Unknown identifier %s at line %d\n", yytext, yylineno); }
 

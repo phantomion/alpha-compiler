@@ -217,21 +217,22 @@ int symtable_insert(const char* name, enum symbol_t type) {
         }
         else if (type == VAR) {
 
-            if (symtable_lookup(name, FORMAL)) return FORMAL_ARGUMENT;
             int i;
             for (i = scope; i > 0; i--) {
                 if (scope_contains(name, i)) {
+                    if (i == scope) {
+                        if (symtable_lookup(name, FORMAL)) return FORMAL_ARGUMENT;
+                        else return VARS;
+                    }
                     if (symtable_lookup(name, USERFUNC)) return USER_FUNC;
                     if (symtable_lookup(name, LIBFUNC)) return LIB_FUNC;
                     if (funcdef_counter == 0) return VARS;
-                    if (i == scope) return VARS;
                     else return NOT_ACCESSIBLE;
                 }
             }
             if (scope_contains(name, 0)) return GLOBAL_VAR;
         }
         else if (type == FORMAL) {
-            if (scope_contains(name, scope)) return COLLISION;
             if (scope_contains(name, scope + 1)) return FORMAL_COLLISION;
             if (symtable_lookup(name, LIBFUNC)) return LIBFUNC_COLLISION;
         }

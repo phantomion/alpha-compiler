@@ -15,13 +15,14 @@ extern int yylineno;
 extern char* yytext;
 extern FILE* yyin;
 extern FILE* yyout;
+char* yyfile;
 
 extern char* opcodes[];
 extern quad* quads;
 
 int yy_alphaerror(const char* message) {
     icode_phase = 0;
-    fprintf(yyout, COLOR_RED"Error:"COLOR_RESET" %s at token %s line %d\n", message, yytext, yylineno);
+    fprintf(yyout, "%s:%d: "COLOR_RED"error:"COLOR_RESET" %s at token %s\n", yyfile, yylineno, message, yytext);
     return 1;
 }
 
@@ -83,7 +84,11 @@ expr* manage_local_var(char *id) {
             case VARS: {
                 symbol* sym = symtable_get(id, LOCALVAR);
                 if (sym) return lvalue_expr(sym);
-                else return lvalue_expr(symtable_get(id, VAR));
+                sym = symtable_get(id, VAR);
+                if (sym) return lvalue_expr(symtable_get(id, VAR));
+                sym = symtable_get(id, FORMAL);
+                if (sym) return lvalue_expr(symtable_get(id, FORMAL));
+                else return lvalue_expr(symtable_get(id, USERFUNC));
                 break;
             }
             default:
@@ -143,6 +148,11 @@ expr* manage_function_exit(expr* func, int locals) {
     return func;
 }
 
+symbol* manage_arith_relop_exprs(expr* arg1, expr* arg2) {
+    if (istempexpr(arg1)) return arg1->sym;
+    else if (istempexpr(arg2)) return arg2->sym;
+    else return new_temp();
+}
 
 expr* manage_add(expr* arg1, expr* arg2) {
 
@@ -150,7 +160,7 @@ expr* manage_add(expr* arg1, expr* arg2) {
     check_arith(arg2, "Cannot add non-arithmetic value");
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const + arg2->num_const;
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(add, arg1, arg2, new, curr_quad, yylineno);
     return new;
@@ -164,7 +174,7 @@ expr* manage_sub(expr* arg1, expr* arg2) {
 
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const - arg2->num_const;
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(sub, arg1, arg2, new, curr_quad, yylineno);
     return new;
@@ -178,7 +188,7 @@ expr* manage_mul(expr* arg1, expr* arg2) {
 
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const * arg2->num_const;
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(mul, arg1, arg2, new, curr_quad, yylineno);
     return new;
@@ -192,7 +202,7 @@ expr* manage_div(expr* arg1, expr* arg2) {
 
     expr* new = newexpr(arithexpr_e);
     new->num_const = arg1->num_const / arg2->num_const;
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(div_i, arg1, arg2, new, curr_quad, yylineno);
     return new;
@@ -206,7 +216,7 @@ expr* manage_mod(expr* arg1, expr* arg2) {
 
     expr* new = newexpr(arithexpr_e);
     new->num_const = (int)arg1->num_const % (int)arg2->num_const;
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(mod, arg1, arg2, new, curr_quad, yylineno);
     return new;
@@ -217,7 +227,7 @@ expr* manage_uminus(expr* ex) {
     check_arith(ex, "Cannot use unary minus on non-arithmetic value");
     expr* new = newexpr(arithexpr_e);
     new->num_const = -(ex->num_const);
-    new->sym = new_temp();
+    new->sym = istempexpr(ex) ? ex->sym : new_temp();
 
     emit(uminus, ex, null, new, curr_quad, yylineno);
     return new;
@@ -227,7 +237,7 @@ expr* manage_uminus(expr* ex) {
 expr* manage_not(expr* ex) {
     expr* new = newexpr(boolexpr_e);
     new->bool_const = !(ex->bool_const);
-    new->sym = new_temp();
+    new->sym = istempexpr(ex) ? ex->sym : new_temp();
 
     emit(not_i, ex, null, new, curr_quad, yylineno);
     return new;
@@ -262,7 +272,7 @@ expr* manage_pre_inc(expr* ex) {
 
 expr* manage_post_inc(expr* ex) {
     check_arith(ex, "Cannot increment non-arithmetic value");
-    expr* term = newexpr(arithexpr_e);
+    expr* term = newexpr(var_e);
     term->sym = new_temp();
 
     expr* one = newexpr(constnum_e);
@@ -311,7 +321,7 @@ expr* manage_pre_dec(expr* ex) {
 
 expr* manage_post_dec(expr* ex) {
     check_arith(ex, "Cannot decrement non-arithmetic value");
-    expr* term = newexpr(arithexpr_e);
+    expr* term = newexpr(var_e);
     term->sym = new_temp();
 
     expr* one = newexpr(constnum_e);
@@ -336,9 +346,6 @@ expr* manage_args(char *id) {
     short int code = symtable_insert(id, 3);
     if (code == LIBFUNC_COLLISION) {
         yy_alphaerror("Argument trying to shadow libfunc");
-    }
-    else if (code == COLLISION) {
-        yy_alphaerror("Symbol redefinition by argument");
     }
     else if (code == FORMAL_COLLISION) {
         yy_alphaerror("Argument redefinition");
@@ -386,7 +393,7 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     if (is_func(lvalue)) yy_alphaerror("Cannot assign to function");
 
     if (lvalue && lvalue->type == tableitem_e) {
-        emit(tablesetelem, lvalue, lvalue->index, ex, curr_quad, yylineno);
+        emit(tablesetelem, lvalue->index, ex, lvalue, curr_quad, yylineno);
         expr* new = emit_iftableitem(lvalue);
         new->type = assignexpr_e;
         return new;
@@ -436,9 +443,12 @@ unsigned int manage_whilecond(expr* ex) {
     return quad;
 }
 
-void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad) {
+void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t* stmt) {
     emit(jump, null, null, null, whilestart_quad, yylineno);
     patchlabel(whilecond_quad, curr_quad);
+    if (!stmt) return;
+    patchlist(stmt->breaklist, curr_quad);
+    patchlist(stmt->contlist, whilestart_quad);
 }
 
 expr* manage_less(expr* arg1, expr* arg2) {
@@ -446,7 +456,7 @@ expr* manage_less(expr* arg1, expr* arg2) {
     check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
     check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
     expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->bool_const = arg1->num_const < arg2->num_const;
 
     emit(if_less, arg1, arg2, null, curr_quad + 3, yylineno);
@@ -476,7 +486,7 @@ expr* manage_greater(expr* arg1, expr* arg2) {
     check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
 
     expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->bool_const = arg1->num_const > arg2->num_const;
 
     emit(if_greater, arg1, arg2, null, curr_quad + 3, yylineno);
@@ -503,7 +513,7 @@ expr* manage_greatereq(expr* arg1, expr* arg2) {
 
 expr* manage_eq(expr* arg1, expr* arg2) {
     expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->bool_const = arg1->num_const == arg2->num_const;
 
     emit(if_eq, arg1, arg2, null, curr_quad + 3, yylineno);
@@ -515,7 +525,7 @@ expr* manage_eq(expr* arg1, expr* arg2) {
 
 expr* manage_neq(expr* arg1, expr* arg2) {
     expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->bool_const = arg1->num_const != arg2->num_const;
 
     emit(if_noteq, arg1, arg2, null, curr_quad + 3, yylineno);
@@ -527,7 +537,7 @@ expr* manage_neq(expr* arg1, expr* arg2) {
 
 expr* manage_or(expr* arg1, expr* arg2) {
     expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->bool_const = arg1->num_const || arg2->num_const;
 
     emit(or_i, arg1, arg2, new, curr_quad, yylineno);
@@ -536,7 +546,7 @@ expr* manage_or(expr* arg1, expr* arg2) {
 
 expr* manage_and(expr* arg1, expr* arg2) {
     expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
+    new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->bool_const = arg1->num_const && arg2->num_const;
 
     emit(and_i, arg1, arg2, new, curr_quad, yylineno);
@@ -569,15 +579,23 @@ expr* manage_array_item(expr* lv, expr* ex) {
 
 expr* make_call(expr* lv, expr* reversed_elist) {
     expr* func = emit_iftableitem(lv);
+    expr* result = newexpr(var_e);
 
     while (reversed_elist) {
         emit(param, null, null, reversed_elist, curr_quad, yylineno);
+        if (!result->sym && istempexpr(reversed_elist)) {
+            result->sym = reversed_elist->sym;
+        }
         reversed_elist = reversed_elist->next;
     }
 
     emit(call, null, null, func, curr_quad, yylineno);
-    expr* result = newexpr(var_e);
-    result->sym = new_temp();
+    if (!result->sym && istempexpr(lv)) {
+        result->sym = lv->sym;
+    }
+    else {
+        result->sym = new_temp();
+    }
     emit(getretval, null, null, result, curr_quad, yylineno);
 
     return result;
@@ -709,6 +727,30 @@ void manage_return(expr* expr) {
         yy_alphaerror("Usage of return outside of function");
     }
     emit(ret, null, null, expr, curr_quad, yylineno);
+}
+
+stmt_t* manage_break() {
+    stmt_t* new = calloc(1, sizeof(stmt_t));
+    new->breaklist = newlist(curr_quad);
+    emit(jump, null, null, null, 0, yylineno);
+    return new;
+}
+
+stmt_t* manage_continue() {
+    stmt_t* new = calloc(1, sizeof(stmt_t));
+    new->contlist = newlist(curr_quad);
+    emit(jump, null, null, null, 0, yylineno);
+    return new;
+}
+
+stmt_t* manage_stmtlist(stmt_t* stmt_list, stmt_t* stmt) {
+    if (!stmt_list && !stmt) return null;
+    if (!stmt_list) return stmt;
+    if (!stmt) return stmt_list;
+    stmt_t* stmts = calloc(1, sizeof(stmt_t));
+    stmts->breaklist = mergelist(stmt_list->breaklist, stmt->breaklist);
+    stmts->contlist = mergelist(stmt_list->contlist, stmt->contlist);
+    return stmts;
 }
 
 void print_arg(expr* e) {
