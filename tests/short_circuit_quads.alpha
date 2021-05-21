@@ -1,0 +1,13 @@
+/*if (x>3 and y>2) {*/
+/*}*/
+/*for(i = 0; i > 0 and x == 10; i++) {*/
+/*}*/
+/*while (x != 3 or x == 5){}*/
+/*function f(){*/
+   /*return a == 2 and not (x <=3);*/
+/*}*/
+/*a[x > 2];*/
+/*a = [{x > 2 and d == 2: y == 2 or h >= 3}];*/
+/*x = not x;*/
+/*f().x[ a > 3 and b];*/
+x = f(x >3 and x, b == 3 or a);

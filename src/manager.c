@@ -9,6 +9,7 @@ extern int scope;
 extern int funcdef_counter;
 extern int anonymous_functions;
 extern int loop_counter;
+extern int is_not;
 
 extern int icode_phase;
 extern int yylineno;
@@ -24,10 +25,6 @@ int yy_alphaerror(const char* message) {
     icode_phase = 0;
     fprintf(yyout, "%s:%d: "COLOR_RED"error:"COLOR_RESET" %s at token %s\n", yyfile, yylineno, message, yytext);
     return 1;
-}
-
-void manage_lvalue(expr* id) {
-    if (is_func(id)) yy_alphaerror("Cannot use arithmetic operators on functions");
 }
 
 
@@ -127,6 +124,7 @@ expr* manage_function(char *id) {
     return new_lvalue;
 }
 
+
 char* new_anonymous_function() {
     anonymous_functions++;
     char* name = malloc(1 + strlen(itoa(anonymous_functions)));
@@ -134,6 +132,7 @@ char* new_anonymous_function() {
     strcat(name, itoa(anonymous_functions));
     return name;
 }
+
 
 expr* manage_function_exit(expr* func, int locals) {
     funcdef_counter--;
@@ -148,18 +147,19 @@ expr* manage_function_exit(expr* func, int locals) {
     return func;
 }
 
+
 symbol* manage_arith_relop_exprs(expr* arg1, expr* arg2) {
     if (istempexpr(arg1)) return arg1->sym;
     else if (istempexpr(arg2)) return arg2->sym;
     else return new_temp();
 }
 
+
 expr* manage_add(expr* arg1, expr* arg2) {
 
     check_arith(arg1, "Cannot add non-arithmetic value");
     check_arith(arg2, "Cannot add non-arithmetic value");
     expr* new = newexpr(arithexpr_e);
-    new->num_const = arg1->num_const + arg2->num_const;
     new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(add, arg1, arg2, new, curr_quad, yylineno);
@@ -173,7 +173,6 @@ expr* manage_sub(expr* arg1, expr* arg2) {
     check_arith(arg2, "Cannot subtract non-arithmetic value");
 
     expr* new = newexpr(arithexpr_e);
-    new->num_const = arg1->num_const - arg2->num_const;
     new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(sub, arg1, arg2, new, curr_quad, yylineno);
@@ -187,7 +186,6 @@ expr* manage_mul(expr* arg1, expr* arg2) {
     check_arith(arg2, "Cannot multiply non-arithmetic value");
 
     expr* new = newexpr(arithexpr_e);
-    new->num_const = arg1->num_const * arg2->num_const;
     new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(mul, arg1, arg2, new, curr_quad, yylineno);
@@ -201,7 +199,6 @@ expr* manage_div(expr* arg1, expr* arg2) {
     check_arith(arg2, "Cannot divide non-arithmetic value");
 
     expr* new = newexpr(arithexpr_e);
-    new->num_const = arg1->num_const / arg2->num_const;
     new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(div_i, arg1, arg2, new, curr_quad, yylineno);
@@ -215,7 +212,6 @@ expr* manage_mod(expr* arg1, expr* arg2) {
     check_arith(arg2, "Cannot use modulo on non-arithmetic value");
 
     expr* new = newexpr(arithexpr_e);
-    new->num_const = (int)arg1->num_const % (int)arg2->num_const;
     new->sym = manage_arith_relop_exprs(arg1, arg2);
 
     emit(mod, arg1, arg2, new, curr_quad, yylineno);
@@ -226,7 +222,6 @@ expr* manage_mod(expr* arg1, expr* arg2) {
 expr* manage_uminus(expr* ex) {
     check_arith(ex, "Cannot use unary minus on non-arithmetic value");
     expr* new = newexpr(arithexpr_e);
-    new->num_const = -(ex->num_const);
     new->sym = istempexpr(ex) ? ex->sym : new_temp();
 
     emit(uminus, ex, null, new, curr_quad, yylineno);
@@ -235,11 +230,15 @@ expr* manage_uminus(expr* ex) {
 
 
 expr* manage_not(expr* ex) {
+    manage_short_circuit(ex);
+    if (!ex->falselist && !ex->truelist) {
+        is_not = 1;
+    }
     expr* new = newexpr(boolexpr_e);
-    new->bool_const = !(ex->bool_const);
     new->sym = istempexpr(ex) ? ex->sym : new_temp();
+    new->falselist = ex->truelist;
+    new->truelist = ex->falselist;
 
-    emit(not_i, ex, null, new, curr_quad, yylineno);
     return new;
 }
 
@@ -389,6 +388,22 @@ expr* manage_number(int val) {
 }
 
 
+void create_short_circuit_assigns(expr* ex) {
+    if (ex->falselist || ex->truelist) {
+        expr* new = newexpr(assignexpr_e);
+        new->sym = new_temp();
+        int truelist_quad = curr_quad;
+        emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+        emit(jump, null, null, null, curr_quad+2, yylineno);
+        int falselist_quad = curr_quad;
+        emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+
+        patchlist(ex->truelist, truelist_quad);
+        patchlist(ex->falselist, falselist_quad);
+    }
+}
+
+
 expr* manage_assignexpr(expr* lvalue, expr* ex) {
     if (is_func(lvalue)) yy_alphaerror("Cannot assign to function");
 
@@ -398,6 +413,8 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
         new->type = assignexpr_e;
         return new;
     }
+
+    create_short_circuit_assigns(ex);
 
     emit(assign, ex, null, lvalue, curr_quad, yylineno);
 
@@ -409,16 +426,20 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
     return new;
 }
 
+
 unsigned int manage_ifprefix(expr* ex) {
+    create_short_circuit_assigns(ex);
     emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
     emit(jump, null, null, null, 0, yylineno);
     return quad;
 }
 
+
 void manage_ifstmt(unsigned int qq) {
     patchlabel(qq, curr_quad);
 }
+
 
 unsigned int manage_elseprefix() {
     unsigned int quad = curr_quad;
@@ -426,22 +447,27 @@ unsigned int manage_elseprefix() {
     return quad;
 }
 
+
 void manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad) {
     patchlabel(ifp_quad, elsep_quad+1);
     patchlabel(elsep_quad, curr_quad);
 }
+
 
 unsigned int manage_whilestart() {
     unsigned int quad = curr_quad;
     return quad;
 }
 
+
 unsigned int manage_whilecond(expr* ex) {
+    create_short_circuit_assigns(ex);
     emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
     emit(jump, null, null, null, 0, yylineno);
     return quad;
 }
+
 
 void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t* stmt) {
     emit(jump, null, null, null, whilestart_quad, yylineno);
@@ -451,107 +477,57 @@ void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad,
     patchlist(stmt->contlist, whilestart_quad);
 }
 
-expr* manage_less(expr* arg1, expr* arg2) {
 
-    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
-    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
+expr* manage_relop(iopcode relop, expr* arg1, expr* arg2) {
     expr* new = newexpr(boolexpr_e);
     new->sym = manage_arith_relop_exprs(arg1, arg2);
-    new->bool_const = arg1->num_const < arg2->num_const;
+    new->truelist = curr_quad;
+    new->falselist = curr_quad + 1;
 
-    emit(if_less, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
-    emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(relop, arg1, arg2, null, 0, yylineno);
+    emit(jump, null, null, null, 0, yylineno);
     return new;
 }
 
-expr* manage_lesseq(expr* arg1, expr* arg2) {
-    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
-    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
 
-    expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
-    new->bool_const = arg1->num_const <= arg2->num_const;
-
-    emit(if_lesseq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
-    emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
-    return new;
-}
-
-expr* manage_greater(expr* arg1, expr* arg2) {
-    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
-    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
-
+expr* manage_or(expr* arg1, expr* arg2, int M) {
     expr* new = newexpr(boolexpr_e);
     new->sym = manage_arith_relop_exprs(arg1, arg2);
-    new->bool_const = arg1->num_const > arg2->num_const;
+    manage_short_circuit(arg2);
+    patchlist(arg1->falselist, M);
+    new->truelist = mergelist(arg1->truelist, arg2->truelist);
+    new->falselist = arg2->falselist;
 
-    emit(if_greater, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
-    emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
-expr* manage_greatereq(expr* arg1, expr* arg2) {
-    check_arith(arg1, "Cannot use relative operators on non-arithmetic value");
-    check_arith(arg2, "Cannot use relative operators on non-arithmetic value");
 
-    expr* new = newexpr(boolexpr_e);
-    new->sym = new_temp();
-    new->bool_const = arg1->num_const >= arg2->num_const;
-
-    emit(if_greatereq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
-    emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
-    return new;
-}
-
-expr* manage_eq(expr* arg1, expr* arg2) {
+expr* manage_and(expr* arg1, expr* arg2, int M) {
     expr* new = newexpr(boolexpr_e);
     new->sym = manage_arith_relop_exprs(arg1, arg2);
-    new->bool_const = arg1->num_const == arg2->num_const;
+    patchlist(arg1->truelist, M);
+    manage_short_circuit(arg2);
+    new->truelist = arg2->truelist;
+    new->falselist = mergelist(arg1->falselist, arg2->falselist);
 
-    emit(if_eq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
-    emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
     return new;
 }
 
-expr* manage_neq(expr* arg1, expr* arg2) {
-    expr* new = newexpr(boolexpr_e);
-    new->sym = manage_arith_relop_exprs(arg1, arg2);
-    new->bool_const = arg1->num_const != arg2->num_const;
 
-    emit(if_noteq, arg1, arg2, null, curr_quad + 3, yylineno);
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
-    emit(jump, null, null, null, curr_quad + 2, yylineno);
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
-    return new;
+void manage_short_circuit(expr* ex) {
+    if (ex->type == boolexpr_e) return;
+    ex->truelist = curr_quad;
+    ex->falselist = curr_quad + 1;
+    if (is_not) {
+        int tmp = ex->falselist;
+        ex->falselist = ex->truelist;
+        ex->truelist = tmp;
+        is_not = 0;
+    }
+    emit(if_eq, ex, manage_bool(1), null, 0, yylineno);
+    emit(jump, null, null, null, 0, yylineno);
 }
 
-expr* manage_or(expr* arg1, expr* arg2) {
-    expr* new = newexpr(boolexpr_e);
-    new->sym = manage_arith_relop_exprs(arg1, arg2);
-    new->bool_const = arg1->num_const || arg2->num_const;
-
-    emit(or_i, arg1, arg2, new, curr_quad, yylineno);
-    return new;
-}
-
-expr* manage_and(expr* arg1, expr* arg2) {
-    expr* new = newexpr(boolexpr_e);
-    new->sym = manage_arith_relop_exprs(arg1, arg2);
-    new->bool_const = arg1->num_const && arg2->num_const;
-
-    emit(and_i, arg1, arg2, new, curr_quad, yylineno);
-    return new;
-}
 
 expr* manage_member_item(expr* lv, char* name) {
     if (is_func(lv)) yy_alphaerror("Cannot access member of function");
@@ -564,10 +540,13 @@ expr* manage_member_item(expr* lv, char* name) {
     return new;
 }
 
+
 expr* manage_array_item(expr* lv, expr* ex) {
     if (is_func(lv)) yy_alphaerror("Cannot access member of function");
 
     if (!lv) return newexpr(nil_e);
+
+    create_short_circuit_assigns(ex);
 
     lv = emit_iftableitem(lv);
     expr* new = newexpr(tableitem_e);
@@ -576,6 +555,7 @@ expr* manage_array_item(expr* lv, expr* ex) {
 
     return new;
 }
+
 
 expr* make_call(expr* lv, expr* reversed_elist) {
     expr* func = emit_iftableitem(lv);
@@ -601,12 +581,14 @@ expr* make_call(expr* lv, expr* reversed_elist) {
     return result;
 }
 
+
 expr* manage_call_funcdef(expr* funcdef, expr* elist) {
     expr* func = newexpr(programfunc_e);
     func->sym = funcdef->sym;
 
     return make_call(func, elist);
 }
+
 
 struct call* manage_methodcall(char* id, expr* elist) {
     struct call* methodcall = calloc(1, sizeof(struct call));
@@ -618,6 +600,7 @@ struct call* manage_methodcall(char* id, expr* elist) {
     return methodcall;
 }
 
+
 struct call* manage_normcall(expr* elist) {
     struct call* normcall = calloc(1, sizeof(struct call));
 
@@ -627,6 +610,7 @@ struct call* manage_normcall(expr* elist) {
 
     return normcall;
 }
+
 
 expr* manage_call_lvalue(expr* lvalue, struct call* callsuffix) {
     lvalue = emit_iftableitem(lvalue);
@@ -640,9 +624,11 @@ expr* manage_call_lvalue(expr* lvalue, struct call* callsuffix) {
     return make_call(lvalue, callsuffix->elist);
 }
 
+
 expr* manage_elist(expr* expr, struct expr* curr_list) {
     return insert_last(curr_list, expr);
 }
+
 
 expr* manage_tablemake(expr* elist) {
     expr* t = newexpr(newtable_e);
@@ -659,7 +645,9 @@ expr* manage_tablemake(expr* elist) {
     return t;
 }
 
+
 index_elem* manage_indexelem(expr* key, expr* value) {
+    create_short_circuit_assigns(value);
     index_elem* elem = calloc(1, sizeof(index_elem));
     elem->key = key;
     elem->value = value;
@@ -667,12 +655,14 @@ index_elem* manage_indexelem(expr* key, expr* value) {
     return elem;
 }
 
+
 index_elem* manage_indexelemlist(index_elem* node, index_elem* list) {
     if (!list) return node;
 
     node->next = list;
     return node;
 }
+
 
 expr* manage_mapmake(index_elem* list) {
     expr* t = newexpr(newtable_e);
@@ -703,6 +693,7 @@ int manage_M() {
 
 
 for_stmt* manage_forprefix(int M, expr* ex) {
+    create_short_circuit_assigns(ex);
     for_stmt* prefix = calloc(1, sizeof(for_stmt));
     prefix->test = M;
     prefix->enter = curr_quad;
@@ -729,8 +720,10 @@ void manage_return(expr* expr) {
     if (funcdef_counter == 0) {
         yy_alphaerror("Usage of return outside of function");
     }
+    create_short_circuit_assigns(expr);
     emit(ret, null, null, expr, curr_quad, yylineno);
 }
+
 
 stmt_t* manage_break() {
     if (!loop_counter) yy_alphaerror("Cannot use break outside of loop");
@@ -740,6 +733,7 @@ stmt_t* manage_break() {
     return new;
 }
 
+
 stmt_t* manage_continue() {
     if (!loop_counter) yy_alphaerror("Cannot use continue outside of loop");
     stmt_t* new = calloc(1, sizeof(stmt_t));
@@ -747,6 +741,7 @@ stmt_t* manage_continue() {
     emit(jump, null, null, null, 0, yylineno);
     return new;
 }
+
 
 stmt_t* manage_stmtlist(stmt_t* stmt_list, stmt_t* stmt) {
     if (!stmt_list && !stmt) return null;
@@ -757,6 +752,7 @@ stmt_t* manage_stmtlist(stmt_t* stmt_list, stmt_t* stmt) {
     stmts->contlist = mergelist(stmt_list->contlist, stmt->contlist);
     return stmts;
 }
+
 
 void print_arg(expr* e) {
     switch (e->type) {
@@ -793,11 +789,12 @@ void print_arg(expr* e) {
     }
 }
 
+
 void print_quads() {
-    int i = 0;
-    printf("quad#\t%-15s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label");
-    printf("----------------------------------------------------------\n");
-    for (i = 0; i < curr_quad; i++) {
+    int i = 1;
+    printf("quad#\t%-15s%-10s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label", "line");
+    printf("-------------------------------------------------------------------\n");
+    for (i = 1; i < curr_quad; i++) {
         printf("%d:\t", i);
         printf("%-15s", opcodes[quads[i].op]);
         if (quads[i].result) {
@@ -816,6 +813,7 @@ void print_quads() {
             printf("%-10d", quads[i].label);
         }
         else printf("%-10s", " ");
+        printf("%-10d", quads[i].line);
         printf("\n");
     }
 }

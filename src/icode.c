@@ -7,10 +7,11 @@
 #include <string.h>
 
 quad* quads = null;
-unsigned int total = 0;
-unsigned int curr_quad = 0;
+unsigned int total = 1;
+unsigned int curr_quad = 1;
 unsigned int temp_counter = 1;
 int icode_phase = 1;
+int is_not = 0;
 
 char* opcodes[] = {
     "assign", "add", "sub", "mul", "div", "mod", "uminus", "and", "or", "not",
@@ -42,11 +43,11 @@ int mergelist(int l1, int l2) {
 }
 
 void patchlist(int list, int label) {
-        while(list) {
-                int next = quads[list].label;
-                quads[list].label = label;
-                list = next;
-        }
+    while(list) {
+        int next = quads[list].label;
+        quads[list].label = label;
+        list = next;
+    }
 }
 
 char* new_temp_name() {

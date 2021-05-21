@@ -130,18 +130,18 @@
 %token MUL_COMMENT
 
 %right ASSIGN
-%right NOT INC DEC UMINUS
 %left COMMA
 %left OR
 %left AND
+%nonassoc EQUAL NEQ
+%nonassoc GT GE LT LE
 %left ADD SUB
 %left MUL DIV MOD
+%right NOT INC DEC UMINUS
 %left POINT RANGE
 %left LBRACKET RBRACKET
 %left LPAREN RPAREN
 %left LCURLY RCURLY
-%nonassoc EQUAL NEQ
-%nonassoc GT GE LT LE
 
 %%
 
@@ -181,15 +181,15 @@ expr:       assignexpr          {$$ = $1;}
             | expr MUL expr     {$$ = manage_mul($1, $3);}
             | expr DIV expr     {$$ = manage_div($1, $3);}
             | expr MOD expr     {$$ = manage_mod($1, $3);}
-            | expr GT expr      {$$ = manage_greater($1, $3);}
-            | expr GE expr      {$$ = manage_greatereq($1, $3);}
-            | expr LT expr      {$$ = manage_less($1, $3);}
-            | expr LE expr      {$$ = manage_lesseq($1, $3);}
-            | expr EQUAL expr   {$$ = manage_eq($1, $3);}
-            | expr NEQ expr     {$$ = manage_neq($1, $3);}
-            | expr AND expr     {$$ = manage_and($1, $3);}
-            | expr OR expr      {$$ = manage_or($1, $3);}
-            | term              {$$ = $1; }
+            | expr GT expr      {$$ = manage_relop(if_greater, $1, $3);}
+            | expr GE expr      {$$ = manage_relop(if_greatereq, $1, $3);}
+            | expr LT expr      {$$ = manage_relop(if_less, $1, $3);}
+            | expr LE expr      {$$ = manage_relop(if_lesseq, $1, $3);}
+            | expr EQUAL expr   {$$ = manage_relop(if_eq, $1, $3);}
+            | expr NEQ expr     {$$ = manage_relop(if_noteq, $1, $3);}
+            | expr AND {manage_short_circuit($1);} M expr   {$$ = manage_and($1, $5, $4);}
+            | expr OR {manage_short_circuit($1);} M expr    {$$ = manage_or($1, $5, $4);}
+            | term              {$$ = $1;}
             | error             {yyclearin;}
             ;
 
@@ -219,7 +219,7 @@ primary:    lvalue                  {$$ = emit_iftableitem($1);}
 lvalue:     ID          {$$ = manage_var($1);}
             | LOCAL ID  {$$ = manage_local_var($2);}
             | SCOPE ID  {$$ = manage_global_var($2);}
-            | member    {$$ = $1; }
+            | member    {$$ = $1;}
             ;
 
 
@@ -247,12 +247,12 @@ normcall:   LPAREN elist RPAREN {$$ = manage_normcall($2);}
 methodcall: RANGE ID LPAREN elist RPAREN {$$ = manage_methodcall($2, $4);}
 
 
-elist:      expr commaexpr {$$ = manage_elist($1, $2);}
+elist:      expr {create_short_circuit_assigns($1);} commaexpr {$$ = manage_elist($1, $3);}
             | {$$ = null;}
             ;
 
 
-commaexpr:  COMMA expr commaexpr {$$ = manage_elist($2, $3);}
+commaexpr:  COMMA expr {create_short_circuit_assigns($2);} commaexpr {$$ = manage_elist($2, $4);}
             | {$$ = null;}
             ;
 
@@ -271,7 +271,7 @@ indexelemlist:  COMMA indexelem indexelemlist {$$ = manage_indexelemlist($2, $3)
                 ;
 
 
-indexelem:  LCURLY expr COLON expr RCURLY {$$ = manage_indexelem($2, $4);}
+indexelem:  LCURLY expr {create_short_circuit_assigns($2);} COLON expr RCURLY {$$ = manage_indexelem($2, $5);}
             ;
 
 

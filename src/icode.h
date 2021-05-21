@@ -35,6 +35,8 @@ typedef enum expr_t {
 typedef struct expr {
     expr_t type;
     symbol* sym;
+    int falselist;
+    int truelist;
     struct expr* index;
     double num_const;
     char* str_const;
