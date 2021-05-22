@@ -43,7 +43,7 @@ expr* manage_relop(iopcode relop, expr* arg1, expr* arg2);
 expr* manage_or(expr* arg1, expr* arg2, int M);
 expr* manage_and(expr* arg1, expr* arg2, int M);
 void manage_short_circuit(expr* ex);
-void create_short_circuit_assigns(expr* ex);
+expr* create_short_circuit_assigns(expr* ex);
 expr* manage_member_item(expr* lv, char* name);
 expr* manage_array_item(expr* lv, expr* ex);
 expr* make_call(expr* lv, expr* reversed_elist);

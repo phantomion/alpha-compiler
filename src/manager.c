@@ -388,19 +388,19 @@ expr* manage_number(int val) {
 }
 
 
-void create_short_circuit_assigns(expr* ex) {
-    if (ex->falselist || ex->truelist) {
-        expr* new = newexpr(assignexpr_e);
-        new->sym = new_temp();
-        int truelist_quad = curr_quad;
-        emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
-        emit(jump, null, null, null, curr_quad+2, yylineno);
-        int falselist_quad = curr_quad;
-        emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+expr* create_short_circuit_assigns(expr* ex) {
+    if (!ex->falselist && !ex->truelist) return ex;
+    expr* new = newexpr(assignexpr_e);
+    new->sym = new_temp();
+    int truelist_quad = curr_quad;
+    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(jump, null, null, null, curr_quad+2, yylineno);
+    int falselist_quad = curr_quad;
+    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
 
-        patchlist(ex->truelist, truelist_quad);
-        patchlist(ex->falselist, falselist_quad);
-    }
+    patchlist(ex->truelist, truelist_quad);
+    patchlist(ex->falselist, falselist_quad);
+    return new;
 }
 
 
@@ -414,7 +414,7 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
         return new;
     }
 
-    create_short_circuit_assigns(ex);
+    ex = create_short_circuit_assigns(ex);
 
     emit(assign, ex, null, lvalue, curr_quad, yylineno);
 
@@ -479,6 +479,9 @@ void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad,
 
 
 expr* manage_relop(iopcode relop, expr* arg1, expr* arg2) {
+    check_arith(arg1, "Invalid use of comparison operator on non-arithmetic expression");
+    check_arith(arg2, "Invalid use of comparison operator on non-arithmetic expression");
+
     expr* new = newexpr(boolexpr_e);
     new->sym = manage_arith_relop_exprs(arg1, arg2);
     new->truelist = curr_quad;
@@ -718,7 +721,7 @@ void manage_forstmt(for_stmt* prefix, int N1, int N2, stmt_t* st, int N3) {
 
 void manage_return(expr* expr) {
     if (funcdef_counter == 0) {
-        yy_alphaerror("Usage of return outside of function");
+        yy_alphaerror("Invalid use of return outside of function");
     }
     create_short_circuit_assigns(expr);
     emit(ret, null, null, expr, curr_quad, yylineno);
@@ -726,7 +729,7 @@ void manage_return(expr* expr) {
 
 
 stmt_t* manage_break() {
-    if (!loop_counter) yy_alphaerror("Cannot use break outside of loop");
+    if (!loop_counter) yy_alphaerror("Invalid use of break outside of loop");
     stmt_t* new = calloc(1, sizeof(stmt_t));
     new->breaklist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
@@ -735,7 +738,7 @@ stmt_t* manage_break() {
 
 
 stmt_t* manage_continue() {
-    if (!loop_counter) yy_alphaerror("Cannot use continue outside of loop");
+    if (!loop_counter) yy_alphaerror("Invalid use of continue outside of loop");
     stmt_t* new = calloc(1, sizeof(stmt_t));
     new->contlist = newlist(curr_quad);
     emit(jump, null, null, null, 0, yylineno);
