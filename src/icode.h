@@ -37,6 +37,7 @@ typedef struct expr {
     symbol* sym;
     int falselist;
     int truelist;
+    int returnlist;
     struct expr* index;
     double num_const;
     char* str_const;

@@ -723,7 +723,9 @@ void manage_return(expr* expr) {
     if (funcdef_counter == 0) {
         yy_alphaerror("Invalid use of return outside of function");
     }
-    create_short_circuit_assigns(expr);
+    if (expr) {
+        expr = create_short_circuit_assigns(expr);
+    }
     emit(ret, null, null, expr, curr_quad, yylineno);
 }
 

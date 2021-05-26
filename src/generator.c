@@ -2,6 +2,7 @@
 #include "parser.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,6 +17,7 @@ char** lib_funcs = null;
 unsigned total_lib_funcs = 0;
 user_func** user_funcs = null;
 unsigned total_user_funcs = 0;
+int curr_processed_quad = 0;
 
 extern quad* quads;
 extern FILE* yyout;
@@ -56,11 +58,13 @@ void generate(vmopcode op, quad* quad) {
 }
 
 void make_operand(expr* e, vmarg* arg) {
+    if (!e) return;
     switch (e->type) {
         case var_e:
         case tableitem_e:
         case arithexpr_e:
         case boolexpr_e:
+        case assignexpr_e:
         case newtable_e: {
             assert(e->sym);
             arg->val = e->sym->offset;
@@ -190,12 +194,38 @@ generator_func_t generators[] = {
 
 void generate_all() {
     for (unsigned i = 1; i < curr_quad; ++i) {
+        curr_processed_quad = i;
         (*generators[quads[i].op])(quads + i);
     }
     print_instrs();
 }
 
-void generate_assign(quad* quad) {}
+void generate_relational(vmopcode op, quad* quad) {
+    instruction* t = calloc(1, sizeof(instruction));
+
+    t->opcode = op;
+    t->arg1 = calloc(1, sizeof(vmarg));
+    t->arg2 = calloc(1, sizeof(vmarg));
+
+    make_operand(quad->arg1, t->arg1);
+    make_operand(quad->arg2, t->arg2);
+
+    t->result = calloc(1, sizeof(vmarg));
+    t->result->type = label_a;
+
+    if (quad->label < curr_processed_quad) {
+        t->result->val = quads[quad->label].taddress;
+    }
+    else {
+        // add_incomplete_jump(curr_instr, quad->label);
+    }
+    quad->taddress = curr_instr;
+    emit_instr(t);
+}
+
+void generate_assign(quad* quad) {
+    generate(assign_v, quad);
+}
 
 
 void generate_add(quad* quad) {
@@ -203,30 +233,148 @@ void generate_add(quad* quad) {
 }
 
 
-void generate_sub(quad* quad) {}
-void generate_mul(quad* quad) {}
-void generate_div(quad* quad) {}
-void generate_mod(quad* quad) {}
-void generate_uminus(quad* quad) {}
+void generate_sub(quad* quad) {
+    generate(sub_v, quad);
+}
+
+
+void generate_mul(quad* quad) {
+    generate(mul_v, quad);
+}
+
+
+void generate_div(quad* quad) {
+    generate(div_v, quad);
+}
+
+
+void generate_mod(quad* quad) {
+    generate(mod_v, quad);
+}
+
+
+void generate_uminus(quad* quad) {
+    instruction* t = malloc(sizeof(instruction));
+    t->arg1 = malloc(sizeof(vmarg));
+    t->arg2 = malloc(sizeof(vmarg));
+    t->result = malloc(sizeof(vmarg));
+    t->opcode = mul_v;
+
+    make_operand(quad->arg1, t->arg1);
+    make_operand(manage_number(-1), t->arg2);
+    make_operand(quad->result, t->result);
+    quad->taddress = curr_instr;
+    emit_instr(t);
+}
 void generate_and(quad* quad) {}
 void generate_or(quad* quad) {}
 void generate_not(quad* quad) {}
-void generate_if_eq(quad* quad) {}
-void generate_if_noteq(quad* quad) {}
-void generate_if_lesseq(quad* quad) {}
-void generate_if_greatereq(quad* quad) {}
-void generate_if_less(quad* quad) {}
-void generate_if_greater(quad* quad) {}
-void generate_jump(quad* quad){}
-void generate_call(quad* quad){}
-void generate_param(quad* quad){}
-void generate_ret(quad* quad){}
-void generate_getretval(quad* quad){}
-void generate_funcstart(quad* quad){}
-void generate_funcend(quad* quad){}
-void generate_tablecreate(quad* quad){}
-void generate_tablegetelem(quad* quad){}
-void generate_tablesetelem(quad* quad){}
+void generate_if_eq(quad* quad) {
+    generate_relational(jeq_v, quad);
+}
+
+void generate_if_noteq(quad* quad) {
+    generate_relational(jne_v, quad);
+}
+
+void generate_if_lesseq(quad* quad) {
+    generate_relational(jle_v, quad);
+}
+
+void generate_if_greatereq(quad* quad) {
+    generate_relational(jge_v, quad);
+}
+
+void generate_if_less(quad* quad) {
+    generate_relational(jlt_v, quad);
+}
+
+void generate_if_greater(quad* quad) {
+    generate_relational(jgt_v, quad);
+}
+
+void generate_jump(quad* quad) {
+    generate_relational(jump_v, quad);
+}
+
+void generate_call(quad* quad) {
+    quad->taddress = curr_instr;
+    instruction* t = calloc(1, sizeof(instruction));
+    t->opcode = call_v;
+    t->arg1 = calloc(1, sizeof(vmarg));
+
+    make_operand(quad->arg1, t->arg1);
+    emit_instr(t);
+}
+
+void generate_param(quad* quad) {
+    quad->taddress = curr_instr;
+    instruction* t = calloc(1, sizeof(instruction));
+    t->opcode = pusharg_v;
+    t->arg1 = calloc(1, sizeof(vmarg));
+
+    make_operand(quad->arg1, t->arg1);
+    emit_instr(t);
+}
+
+void generate_ret(quad* quad) {
+    quad->taddress = curr_instr;
+    instruction* t = calloc(1, sizeof(instruction));
+
+    t->opcode = assign_v;
+    t->arg1 = calloc(1, sizeof(vmarg));
+    t->result = calloc(1, sizeof(vmarg));
+
+    t->result->type = retval_a;
+    make_operand(quad->arg1, t->arg1);
+    emit_instr(t);
+}
+
+void generate_getretval(quad* quad){
+    quad->taddress = curr_instr;
+    instruction* t = calloc(1, sizeof(instruction));
+    t->opcode = assign_v;
+    t->arg1 = calloc(1, sizeof(vmarg));
+    t->result = calloc(1, sizeof(vmarg));
+
+    make_operand(quad->result, t->result);
+    t->arg1->type = retval_a;
+    emit_instr(t);
+}
+
+void generate_funcstart(quad* quad) {
+    quad->result->sym->func_addr = curr_instr;
+    quad->taddress = curr_instr;
+
+    instruction* t = calloc(1, sizeof(instruction));
+    t->opcode = funcenter_v;
+    t->result = calloc(1, sizeof(vmarg));
+    make_operand(quad->result, t->result);
+    emit_instr(t);
+}
+
+void generate_funcend(quad* quad){
+    quad->taddress = curr_instr;
+    instruction* t = calloc(1, sizeof(instruction));
+    t->opcode = funcexit_v;
+
+    t->result = calloc(1, sizeof(vmarg));
+    make_operand(quad->result, t->result);
+    emit_instr(t);
+}
+void generate_tablecreate(quad* quad) {
+    generate(newtable_v, quad);
+}
+
+
+void generate_tablegetelem(quad* quad) {
+    generate(tablegetelem_v, quad);
+}
+
+
+void generate_tablesetelem(quad* quad) {
+    generate(tablesetelem_v, quad);
+}
 
 void print_instr_arg(vmarg* vma) {
     switch (vma->type) {
