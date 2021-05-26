@@ -47,11 +47,18 @@ typedef struct user_func {
     char* id;
 }user_func;
 
+//#define EXPAND_SIZE 1024
+#define CURR_INSTR_SIZE   (total * sizeof(instruction))
+#define NEW_INSTR_SIZE    (EXPAND_SIZE * sizeof(instruction) + CURR_INSTR_SIZE)
+
 unsigned consts_newstring(char* s);
 unsigned consts_newnumber(double n);
 unsigned libfuncs_newused(char* s);
 unsigned userfuncs_newfunc(symbol* sym);
 void make_operand(expr* e, vmarg* arg);
+
+void expand_instr();
+void emit(instruction* instr);
 
 void generate_assign(quad*);
 void generate_add(quad*);

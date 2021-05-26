@@ -51,6 +51,7 @@ typedef struct quad {
     expr* arg2;
     unsigned int label;
     unsigned int line;
+    unsigned taddress;
 }quad;
 
 typedef struct for_stmt {

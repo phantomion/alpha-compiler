@@ -16,6 +16,40 @@ unsigned total_user_funcs;
 extern unsigned int total;
 extern quad* quads;
 
+instruction* instructions = null;
+unsigned int total_instr = 1;
+unsigned int curr_instr = 1;
+
+void expand_instr() {
+    assert(total_instr == curr_instr);
+    instruction* i = malloc(NEW_INSTR_SIZE);
+    if (instructions) {
+        memcpy(i, instructions, CURR_INSTR_SIZE);
+        free(instructions);
+    }
+    instructions = i;
+    total_instr += EXPAND_SIZE;
+}
+
+void emit_instr(instruction* instr) {
+    if (curr_instr == total) expand();
+    instruction* temp = instructions + curr_instr++;
+    memcpy(temp, instr, sizeof(struct instruction));
+}
+
+void generate(vmopcode op, quad* quad) {
+    instruction* t = malloc(sizeof(instruction));
+    t->arg1 = malloc(sizeof(vmarg));
+    t->arg2 = malloc(sizeof(vmarg));
+    t->result = malloc(sizeof(vmarg));
+    t->opcode = op;
+    make_operand(quad->arg1, t->arg1);
+    make_operand(quad->arg2, t->arg2);
+    make_operand(quad->result, t->result);
+    quad->taddress = curr_instr;
+    emit_instr(t);
+}
+
 void make_operand(expr* e, vmarg* arg) {
     switch (e->type) {
         case var_e:
