@@ -15,4 +15,5 @@ function bar(qq) {
     return 5;
     return a;
     return;
+    return a and b < 2;
 }
