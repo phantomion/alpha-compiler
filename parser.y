@@ -3,6 +3,7 @@
     #include "icode.h"
     #include "parser.h"
     #include "manager.h"
+    #include "generator.h"
 
     int yyerror(char* message);
     int yylex();
@@ -421,6 +422,7 @@ int main(int argc, char** argv) {
     /*print_scopes();*/
     if (icode_phase) {
         print_quads();
+        generate_all();
     }
 
     return 0;

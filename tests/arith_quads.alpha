@@ -17,7 +17,8 @@
 /*x = f() and g(2);*/
 /*a = 2;*/
 /*a = a < b or c < d and e < f;*/
-a = not (not b and not c);
-a = not (a < b);
-a = b;
-a = d - y + ++x;
+/*a = not (not b and not c);*/
+/*a = not (a < b);*/
+/*a = b;*/
+a = a + 2;
+/*a = d - y + ++x;*/
