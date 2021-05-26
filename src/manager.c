@@ -767,25 +767,25 @@ void print_arg(expr* e) {
         case tableitem_e:
         case newtable_e:
         case libraryfunc_e:
-            printf("%-10s", e->sym->name);
+            fprintf(yyout, "%-10s", e->sym->name);
             break;
         case constnum_e:
-            printf("%-10g",  e->num_const);
+            fprintf(yyout, "%-10g",  e->num_const);
             break;
         case nil_e:
-            printf("%-10s", "NIL");
+            fprintf(yyout, "%-10s", "NIL");
             break;
         case constbool_e: {
             if (e->bool_const == true) {
-                printf("%-10s", "TRUE");
+                fprintf(yyout, "%-10s", "TRUE");
             }
             else {
-                printf("%-10s", "FALSE");
+                fprintf(yyout, "%-10s", "FALSE");
             }
             break;
         }
         case conststring_e:
-            printf("%-10s", e->str_const);
+            fprintf(yyout, "%-10s", e->str_const);
             break;
         default:
             break;
@@ -795,28 +795,28 @@ void print_arg(expr* e) {
 
 void print_quads() {
     int i = 1;
-    printf("quad#\t%-15s%-10s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label", "line");
-    printf("-------------------------------------------------------------------\n");
+    fprintf(yyout, "quad#\t%-15s%-10s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label", "line");
+    fprintf(yyout, "-------------------------------------------------------------------\n");
     for (i = 1; i < curr_quad; i++) {
-        printf("%d:\t", i);
-        printf("%-15s", opcodes[quads[i].op]);
+        fprintf(yyout, "%d:\t", i);
+        fprintf(yyout, "%-15s", opcodes[quads[i].op]);
         if (quads[i].result) {
             print_arg(quads[i].result);
         }
-        else printf("%-10s", " ");
+        else fprintf(yyout, "%-10s", " ");
         if (quads[i].arg1) {
             print_arg(quads[i].arg1);
         }
-        else printf("%-10s", " ");
+        else fprintf(yyout, "%-10s", " ");
         if (quads[i].arg2) {
             print_arg(quads[i].arg2);
         }
-        else printf("%-10s", " ");
+        else fprintf(yyout, "%-10s", " ");
         if (quads[i].label != i) {
-            printf("%-10d", quads[i].label);
+            fprintf(yyout, "%-10d", quads[i].label);
         }
-        else printf("%-10s", " ");
-        printf("%-10d", quads[i].line);
-        printf("\n");
+        else fprintf(yyout, "%-10s", " ");
+        fprintf(yyout, "%-10d", quads[i].line);
+        fprintf(yyout, "\n");
     }
 }
