@@ -1,17 +1,19 @@
 #include "generator.h"
 
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "icode.h"
 
-double* num_consts;
-unsigned total_num_consts;
-char** string_consts;
-unsigned total_string_consts;
-char** lib_funcs;
-unsigned total_lib_funcs;
-user_func* user_funcs;
-unsigned total_user_funcs;
+double* num_consts = null;
+unsigned total_num_consts = 0;
+char** string_consts = null;
+unsigned total_string_consts = 0;
+char** lib_funcs = null;
+unsigned total_lib_funcs = 0;
+user_func** user_funcs = null;
+unsigned total_user_funcs = 0;
 
 extern unsigned int total;
 extern quad* quads;
@@ -60,7 +62,7 @@ void make_operand(expr* e, vmarg* arg) {
             break;
         case programfunc_e: {
             arg->type = userfunc_a;
-            arg->val = e->sym->func_addr;
+            arg->val = userfuncs_newfunc(e->sym);
             break;
         }
         case libraryfunc_e: {
@@ -72,6 +74,68 @@ void make_operand(expr* e, vmarg* arg) {
             assert(0);
     }
 }
+
+unsigned consts_newstring(char* s) {
+    for (size_t i = 0; i < total_string_consts; i++) {
+        if (strcmp(string_consts[i], s) == 0) return i;
+    }
+
+    total_string_consts++;
+
+    if (!string_consts) string_consts = calloc(1, total_string_consts);
+    else string_consts = realloc(string_consts, total_string_consts);
+
+    string_consts[total_string_consts - 1] = s;
+
+    return total_string_consts - 1;
+}
+
+
+unsigned consts_newnumber(double n) {
+    for (size_t i = 0; i < total_num_consts; i++) {
+        if (num_consts[i] == n) return i;
+    }
+
+    total_num_consts++;
+
+    if (!num_consts) num_consts = calloc(1, total_num_consts);
+    else num_consts = realloc(num_consts, total_num_consts);
+
+    num_consts[total_num_consts - 1] = n;
+
+    return total_num_consts - 1;
+}
+
+
+unsigned libfuncs_newused(char* s) {
+    for (size_t i = 0; i < total_lib_funcs; i++) {
+        if (strcmp(lib_funcs[i], s) == 0) return i;
+    }
+
+    total_lib_funcs++;
+
+    if (!lib_funcs) lib_funcs = calloc(1, total_lib_funcs);
+    else lib_funcs = realloc(lib_funcs, total_lib_funcs);
+
+    lib_funcs[total_lib_funcs - 1] = s;
+
+    return total_lib_funcs - 1;
+}
+
+
+unsigned userfuncs_newfunc(symbol* sym) {
+    total_user_funcs++;
+    if (!user_funcs) user_funcs = calloc(1, total_user_funcs);
+    else user_funcs = realloc(user_funcs, total_user_funcs);
+
+    user_funcs[total_user_funcs - 1] = calloc(1, sizeof(user_func));
+    user_funcs[total_user_funcs - 1]->address = sym->func_addr;
+    user_funcs[total_user_funcs - 1]->localSize = sym->total_locals;
+    user_funcs[total_user_funcs - 1]->id = sym->name;
+
+    return total_user_funcs - 1;
+}
+
 
 typedef void (*generator_func_t)(quad*);
 
@@ -92,3 +156,36 @@ void generate_all() {
         (*generators[quads[i].op])(quads + i);
     }
 }
+
+void generate_assign(quad*);
+
+
+void generate_add(quad* quad) {
+
+}
+
+
+void generate_sub(quad*);
+void generate_mul(quad*);
+void generate_div(quad*);
+void generate_mod(quad*);
+void generate_uminus(quad*);
+void generate_and(quad*);
+void generate_or(quad*);
+void generate_not(quad*);
+void generate_if_eq(quad*);
+void generate_if_noteq(quad*);
+void generate_if_lesseq(quad*);
+void generate_if_greatereq(quad*);
+void generate_if_less(quad*);
+void generate_if_greater(quad*);
+void generate_jump(quad*);
+void generate_call(quad*);
+void generate_param(quad*);
+void generate_ret(quad*);
+void generate_getretval(quad*);
+void generate_funcstart(quad*);
+void generate_funcend(quad*);
+void generate_tablecreate(quad*);
+void generate_tablegetelem(quad*);
+void generate_tablesetelem(quad*);
