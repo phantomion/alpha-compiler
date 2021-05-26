@@ -246,7 +246,7 @@ void generate_relational(vmopcode op, quad* quad) {
         t->result->val = quads[quad->label].taddress;
     }
     else {
-        // add_incomplete_jump(curr_instr, quad->label);
+        add_incomplete_jump(curr_instr, quad->label);
     }
     quad->taddress = curr_instr;
     emit_instr(t);
