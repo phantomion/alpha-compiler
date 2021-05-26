@@ -24,6 +24,35 @@ instruction** instructions = null;
 unsigned int total_instr = 1;
 unsigned int curr_instr = 1;
 
+incomplete_jump* ij_head = null;
+incomplete_jump* ij_tail = null;
+unsigned ij_total = 0;
+
+void add_incomplete_jump(unsigned instrNo, unsigned iaddress) {
+    incomplete_jump* jump = malloc(sizeof(incomplete_jump));
+    jump->instrNo = instrNo;
+    jump->iaddress = iaddress;
+    jump->next = null;
+
+    if(!ij_head) {
+        ij_head = jump;
+        ij_tail = jump;
+    }
+    else {
+        ij_tail->next = jump;
+        ij_tail = jump;
+    }
+}
+
+void patch_incomplete_jump() {
+    incomplete_jump* temp = ij_head;
+
+    while(temp) {
+        instructions[temp->instrNo]->result->type = label_a;
+        instructions[temp->instrNo]->result->val = (temp->iaddress == curr_quad) ? curr_instr : quads[temp->iaddress].taddress;
+    }
+}
+
 void print_instrs();
 
 void expand_instr() {
@@ -250,6 +279,9 @@ void print_instr_arg(vmarg* vma) {
             break;
         case libfunc_a:
             fprintf(yyout, "%d:%-10s", vma->type, lib_funcs[vma->val]);
+            break;
+        case label_a:
+            fprintf(yyout, "%d:%-10d", vma->type, vma->val);
             break;
         default:
             break;

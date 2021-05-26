@@ -47,6 +47,12 @@ typedef struct user_func {
     char* id;
 }user_func;
 
+typedef struct incomplete_jump {
+    unsigned instrNo;
+    unsigned iaddress;
+    struct incomplete_jump* next;
+}incomplete_jump;
+
 #define CURR_INSTR_SIZE   (total_instr * sizeof(instruction *))
 #define NEW_INSTR_SIZE    (EXPAND_SIZE * sizeof(instruction *) + CURR_INSTR_SIZE)
 
