@@ -7,6 +7,11 @@
 
 extern unsigned int curr_quad;
 
+typedef struct stack_node {
+    int label;
+    struct stack_node* prev;
+}stack_node;
+
 int yy_alphaerror(const char* message);
 expr* manage_lvalue(expr* ex);
 expr* manage_global_var(char* id);

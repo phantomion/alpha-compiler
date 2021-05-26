@@ -1,11 +1,16 @@
-function foo(mhtsos) {
-    local nai = 2;
-    nai = 5;
-}
+/*function foo(mhtsos) {*/
+    /*local nai = 2;*/
+    /*nai = 5;*/
+/*}*/
 
 function bar(qq) {
     function foo(y) {
-        oxi = y < 3;
+        oxi = o < 3;
+        function talia() {
+            yes = 1;
+            return yes;
+        }
+        return;
     }
     return 5;
     return a;

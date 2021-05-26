@@ -21,10 +21,61 @@ char* yyfile;
 extern char* opcodes[];
 extern quad* quads;
 
+stack_node* func_head = null;
+stack_node* ret_head = null;
+
 int yy_alphaerror(const char* message) {
     icode_phase = 0;
     fprintf(yyout, "%s:%d: "COLOR_RED"error:"COLOR_RESET" %s at token %s\n", yyfile, yylineno, message, yytext);
     return 1;
+}
+
+
+void function_stack_push(int label) {
+    stack_node* new = malloc(sizeof(stack_node));
+    new->label = label;
+
+    if(!func_head) {
+        func_head = new;
+        func_head->prev = null;
+    }
+    else {
+        new->prev = func_head;
+        func_head = new;
+    }
+}
+
+
+void return_stack_push(int label) {
+    stack_node* new = malloc(sizeof(stack_node));
+    new->label = label;
+
+    if(!ret_head) {
+        ret_head = new;
+        ret_head->prev = null;
+    }
+    else {
+        new->prev = ret_head;
+        ret_head = new;
+    }
+}
+
+
+int function_stack_pop() {
+    stack_node* temp = func_head;
+    int label = temp->label;
+    func_head = func_head->prev;
+    free(temp);
+    return label;
+}
+
+
+int return_stack_pop() {
+    stack_node* temp = ret_head;
+    int label = temp->label;
+    ret_head = ret_head->prev;
+    free(temp);
+    return label;
 }
 
 
@@ -118,6 +169,9 @@ expr* manage_function(char *id) {
     reset_formalarg_offset();
     funcdef_counter++;
 
+    emit(jump, null, null, null, 0, yylineno);
+    function_stack_push(curr_quad-1);
+
     expr* new_lvalue = lvalue_expr(func);
     emit(funcstart, null, null, new_lvalue, curr_quad, yylineno);
 
@@ -144,6 +198,12 @@ expr* manage_function_exit(expr* func, int locals) {
     }
 
     emit(funcend, null, null, func, curr_quad, yylineno);
+    patchlabel(function_stack_pop(), curr_quad);
+
+    while(ret_head) {
+        patchlabel(return_stack_pop(), curr_quad-1);
+    }
+
     return func;
 }
 
@@ -723,8 +783,12 @@ void manage_return(expr* expr) {
     if (funcdef_counter == 0) {
         yy_alphaerror("Invalid use of return outside of function");
     }
-    create_short_circuit_assigns(expr);
+    if (expr) {
+        expr = create_short_circuit_assigns(expr);
+    }
     emit(ret, null, null, expr, curr_quad, yylineno);
+    emit(jump, null, null, null, 0, yylineno);
+    return_stack_push(curr_quad-1);
 }
 
 
