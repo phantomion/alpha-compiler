@@ -52,6 +52,7 @@ void patch_incomplete_jump() {
     while(temp) {
         instructions[temp->instrNo]->result->type = label_a;
         instructions[temp->instrNo]->result->val = (temp->iaddress == curr_quad) ? curr_instr : quads[temp->iaddress].taddress;
+        temp = temp->next;
     }
 }
 
@@ -81,6 +82,8 @@ void generate(vmopcode op, quad* quad) {
     t->opcode = op;
     make_operand(quad->arg1, t->arg1);
     make_operand(quad->arg2, t->arg2);
+    if (!t->arg2->type && !t->arg2->val)
+        t->arg2 = null;
     make_operand(quad->result, t->result);
     quad->taddress = curr_instr;
     emit_instr(t);
@@ -194,6 +197,10 @@ unsigned libfuncs_newused(char* s) {
 
 
 unsigned userfuncs_newfunc(symbol* sym) {
+    for (size_t i = 0; i < total_user_funcs; i++) {
+        if (user_funcs[i]->address == sym->func_addr) return i;
+    }
+
     total_user_funcs++;
     if (!user_funcs) user_funcs = calloc(1, total_user_funcs * sizeof(user_func*));
     else user_funcs = realloc(user_funcs, total_user_funcs * sizeof(user_func*));
@@ -226,6 +233,7 @@ void generate_all() {
         curr_processed_quad = i;
         (*generators[quads[i].op])(quads + i);
     }
+    patch_incomplete_jump();
     print_instrs();
 }
 
@@ -238,6 +246,11 @@ void generate_relational(vmopcode op, quad* quad) {
 
     make_operand(quad->arg1, t->arg1);
     make_operand(quad->arg2, t->arg2);
+
+    if (op == jump_v) {
+        t->arg1 = null;
+        t->arg2 = null;
+    }
 
     t->result = calloc(1, sizeof(vmarg));
     t->result->type = label_a;
@@ -330,9 +343,9 @@ void generate_call(quad* quad) {
     quad->taddress = curr_instr;
     instruction* t = calloc(1, sizeof(instruction));
     t->opcode = call_v;
-    t->arg1 = calloc(1, sizeof(vmarg));
+    t->result = calloc(1, sizeof(vmarg));
 
-    make_operand(quad->arg1, t->arg1);
+    make_operand(quad->result, t->result);
     emit_instr(t);
 }
 
@@ -340,9 +353,9 @@ void generate_param(quad* quad) {
     quad->taddress = curr_instr;
     instruction* t = calloc(1, sizeof(instruction));
     t->opcode = pusharg_v;
-    t->arg1 = calloc(1, sizeof(vmarg));
+    t->result = calloc(1, sizeof(vmarg));
 
-    make_operand(quad->arg1, t->arg1);
+    make_operand(quad->result, t->result);
     emit_instr(t);
 }
 
@@ -457,5 +470,98 @@ void print_instrs() {
         }
         else fprintf(yyout, "%-10s", " ");
         fprintf(yyout, "\n");
+    }
+}
+
+void write_abc_bin() {
+    char* magicnumber = "340200501";
+    FILE* fp = fopen("alpha_bin.abc", "wb");
+    if (!fp) {
+        exit(EXIT_FAILURE);
+    }
+    fwrite(magicnumber, strlen(magicnumber), 1, fp);
+
+    fwrite(&total_string_consts, sizeof(total_string_consts), 1, fp);
+    for (size_t i = 0; i < total_string_consts; i++) {
+        int str_const_len = strlen(string_consts[i]);
+        fwrite(&str_const_len, sizeof(int), 1, fp);
+        fwrite(string_consts[i], strlen(string_consts[i]), 1, fp);
+    }
+
+    fwrite(&total_num_consts, sizeof(total_num_consts), 1, fp);
+    for (size_t i = 0; i < total_num_consts; i++) {
+        fwrite(&num_consts[i], sizeof(num_consts[i]), 1, fp);
+    }
+
+    fwrite(&total_user_funcs, sizeof(total_user_funcs), 1, fp);
+    for (size_t i = 0; i < total_user_funcs; i++) {
+        fwrite(user_funcs[i], sizeof(*user_funcs[i]), 1, fp);
+    }
+
+    fwrite(&total_lib_funcs, sizeof(total_lib_funcs), 1, fp);
+    for (size_t i = 0; i < total_lib_funcs; i++) {
+        int lib_func_len = strlen(lib_funcs[i]);
+        fwrite(&lib_func_len, sizeof(int), 1, fp);
+        fwrite(lib_funcs[i], strlen(lib_funcs[i]), 1, fp);
+    }
+
+    fwrite(&curr_instr, sizeof(curr_instr), 1, fp);
+    for (size_t i = 1; i < curr_instr; i++) {
+        fwrite(instructions[i], sizeof(*instructions[i]), 1, fp);
+    }
+}
+
+void write_abc_text() {
+    char* magicnumber = "340200501";
+    FILE* fp = fopen("alpha_text.abc", "w");
+    if (!fp) {
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(fp, "%s\n", magicnumber);
+
+    fprintf(fp, "# Total string consts:\n");
+    fprintf(fp, "%d\n", total_string_consts);
+    for (size_t i = 0; i < total_string_consts; i++) {
+        fprintf(fp, "%lu %s\n", strlen(string_consts[i]), string_consts[i]);
+    }
+
+    fprintf(fp, "# Total number consts:\n");
+    fprintf(fp, "%d\n", total_num_consts);
+    for (size_t i = 0; i < total_num_consts; i++) {
+        fprintf(fp, "%g\n", num_consts[i]);
+    }
+
+    fprintf(fp, "# Total user functions:\n");
+    fprintf(fp, "%d\n", total_user_funcs);
+    for (size_t i = 0; i < total_user_funcs; i++) {
+        fprintf(fp, "%d %d %lu %s\n", user_funcs[i]->address, user_funcs[i]->localSize, strlen(user_funcs[i]->id), user_funcs[i]->id);
+    }
+
+    fprintf(fp, "# Total library functions:\n");
+    fprintf(fp, "%d\n", total_lib_funcs);
+    for (size_t i = 0; i < total_lib_funcs; i++) {
+        fprintf(fp, "%lu %s\n", strlen(lib_funcs[i]), lib_funcs[i]);
+    }
+
+    fprintf(fp, "# Total instructions:\n");
+    fprintf(fp, "%d\n", curr_instr);
+
+    fprintf(fp, "#opcode %-10s%-10s%-10s\n", "result", "arg1", "arg2");
+    for (size_t i = 1; i < curr_instr; i++) {
+        fprintf(fp, "%d\t", instructions[i]->opcode);
+        if (instructions[i]->result) {
+            fprintf(fp, "%d:%d ", instructions[i]->result->type, instructions[i]->result->val);
+        }
+        else fprintf(fp, "%-10s", " ");
+        if (instructions[i]->arg1) {
+            fprintf(fp, "%d:%d ", instructions[i]->arg1->type, instructions[i]->arg1->val);
+        }
+        else fprintf(fp, "%-10s", " ");
+        if (instructions[i]->arg2) {
+            fprintf(fp, "%d:%d", instructions[i]->arg2->type, instructions[i]->arg2->val);
+        }
+        else fprintf(fp, "%-10s", " ");
+        fprintf(fp, "\n");
     }
 }

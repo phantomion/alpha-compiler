@@ -92,4 +92,6 @@ void generate_tablecreate(quad*);
 void generate_tablegetelem(quad*);
 void generate_tablesetelem(quad*);
 void generate_all();
+void write_abc_bin();
+void write_abc_text();
 #endif

@@ -1,6 +1,7 @@
 local die = 2;
 x = 2;
 x++;
+y = a.yes;
 print(typeof(x));
 ::print(::typeof(::x));
 function foo() {

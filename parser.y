@@ -420,10 +420,11 @@ int main(int argc, char** argv) {
     initialize_libfuncs();
     yyparse();
     /*print_scopes();*/
-    if (icode_phase) {
-        print_quads();
-        generate_all();
-    }
+    if (!icode_phase) exit(EXIT_SUCCESS);
+    /*print_quads();*/
+    generate_all();
+    write_abc_text();
+    write_abc_bin();
 
     return 0;
 }
