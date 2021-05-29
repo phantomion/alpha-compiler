@@ -13,6 +13,22 @@ unsigned curr_line = 0;
 unsigned code_size = 0;
 instruction* code = null;
 
+extern double* num_consts;
+extern char** string_consts;
+extern char** lib_funcs;
+
+double consts_getnumber(unsigned index) {
+    return num_consts[index];
+}
+
+char* consts_getstring(unsigned index) {
+    return string_consts[index];
+}
+
+char* libfuncs_getused(unsigned index) {
+    return lib_funcs[index];
+}
+
 
 static void avm_initstack() {
     for (int i = 0; i < AVM_STACKSIZE; i++) {
@@ -46,6 +62,40 @@ avm_table* avm_tablenew() {
 
     return t;
 }
+
+
+typedef void (*memclear_func_t) (avm_memcell*);
+
+memclear_func_t memclear_funcs[] = {
+    0,
+    memclear_string,
+    0,
+    memclear_table,
+    0,
+    0,
+    0,
+    0,
+};
+
+void memclear_string(avm_memcell* m) {
+    assert(m->data.str_val);
+    free(m->data.str_val);
+}
+
+void memclear_table(avm_memcell* m) {
+    assert(m->data.table_val);
+    avm_tabledecrefcounter(m->data.table_val);
+}
+
+void avm_memcell_clear(avm_memcell* m) {
+    if (m->type == undef_m) return;
+    memclear_func_t f = memclear_funcs[m->type];
+    if (f) {
+        (*f) (m);
+    }
+    m->type = undef_m;
+}
+
 
 void avm_tablebucketsdestroy(avm_table_bucket** p) {
     for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
@@ -118,6 +168,32 @@ execute_func_t execute_funcs[] = {
     execute_tablegetelem, execute_tablesetelem,
 };
 
+void execute_assign(instruction* instr) {}
+void execute_add(instruction* instr) {}
+void execute_sub(instruction* instr) {}
+void execute_mul(instruction* instr) {}
+void execute_div(instruction* instr) {}
+void execute_mod(instruction* instr) {}
+void execute_uminus(instruction* instr) {}
+void execute_and(instruction* instr) {}
+void execute_or(instruction* instr) {}
+void execute_not(instruction* instr) {}
+void execute_if_eq(instruction* instr) {}
+void execute_if_noteq(instruction* instr) {}
+void execute_if_lesseq(instruction* instr) {}
+void execute_if_greatereq(instruction* instr) {}
+void execute_if_less(instruction* instr) {}
+void execute_if_greater(instruction* instr) {}
+void execute_jump(instruction* instr) {}
+void execute_call(instruction* instr) {}
+void execute_param(instruction* instr) {}
+void execute_ret(instruction* instr) {}
+void execute_getretval(instruction* instr) {}
+void execute_funcstart(instruction* instr) {}
+void execute_funcend(instruction* instr) {}
+void execute_tablecreate(instruction* instr) {}
+void execute_tablegetelem(instruction* instr) {}
+void execute_tablesetelem(instruction* instr) {}
 
 void execute_cycle() {
     if (execution_finished) {

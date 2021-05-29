@@ -55,6 +55,9 @@ avm_memcell* avm_tablegetelem(avm_memcell* key);
 void avm_tablesetelem(avm_memcell* key, avm_memcell* value);
 void avm_memcell_clear(avm_memcell* m);
 
+void memclear_string(avm_memcell* m);
+void memclear_table(avm_memcell* m);
+
 double consts_getnumber(unsigned index);
 char* consts_getstring(unsigned index);
 char* libfuncs_getused(unsigned index);
