@@ -439,7 +439,7 @@ void print_instr_arg(vmarg* vma) {
 
 void print_instrs() {
     int i = 1;
-    fprintf(yyout, "instr#\t%-15s%-10s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label", "line");
+    fprintf(yyout, "\ninstr#\t%-15s%-10s%-10s%-10s%-10s%-10s\n", "opcode", "result", "arg1", "arg2", "label", "line");
     fprintf(yyout, "-------------------------------------------------------------------\n");
     for (i = 1; i < curr_instr; i++) {
         fprintf(yyout, "%d:\t", i);
