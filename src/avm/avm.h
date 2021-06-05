@@ -1,6 +1,6 @@
 #ifndef AVM_H
 #define AVM_H
-#include "../generator.h"
+#include "../vm_structs.h"
 #include <string.h>
 
 #define AVM_STACKSIZE 4096

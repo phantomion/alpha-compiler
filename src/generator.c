@@ -213,7 +213,6 @@ unsigned userfuncs_newfunc(symbol* sym) {
     return total_user_funcs - 1;
 }
 
-
 typedef void (*generator_func_t)(quad*);
 
 generator_func_t generators[] = {
@@ -495,7 +494,11 @@ void write_abc_bin() {
 
     fwrite(&total_user_funcs, sizeof(total_user_funcs), 1, fp);
     for (size_t i = 0; i < total_user_funcs; i++) {
-        fwrite(user_funcs[i], sizeof(*user_funcs[i]), 1, fp);
+        int func_id_len = strlen(user_funcs[i]->id);
+        fwrite(&func_id_len, sizeof(int), 1, fp);
+        fwrite(&user_funcs[i]->address, sizeof(int), 1, fp);
+        fwrite(&user_funcs[i]->localSize, sizeof(int), 1, fp);
+        fwrite(user_funcs[i]->id, strlen(user_funcs[i]->id), 1, fp);
     }
 
     fwrite(&total_lib_funcs, sizeof(total_lib_funcs), 1, fp);
@@ -507,7 +510,30 @@ void write_abc_bin() {
 
     fwrite(&curr_instr, sizeof(curr_instr), 1, fp);
     for (size_t i = 1; i < curr_instr; i++) {
-        fwrite(instructions[i], sizeof(*instructions[i]), 1, fp);
+        fwrite(&instructions[i]->opcode, sizeof(vmarg_t), 1, fp);
+
+        fwrite(&instructions[i]->result->type, sizeof(vmarg_t), 1, fp);
+        fwrite(&instructions[i]->result->val, sizeof(int), 1, fp);
+        int zero = 0;
+        if (instructions[i]->arg1) {
+            fwrite(&instructions[i]->arg1->type, sizeof(vmarg_t), 1, fp);
+            fwrite(&instructions[i]->arg1->val, sizeof(int), 1, fp);
+        }
+        else {
+            fwrite(&zero, sizeof(vmarg_t), 1, fp);
+            fwrite(&zero, sizeof(int), 1, fp);
+        }
+
+        if (instructions[i]->arg2) {
+            fwrite(&instructions[i]->arg2->type, sizeof(vmarg_t), 1, fp);
+            fwrite(&instructions[i]->arg2->val, sizeof(int), 1, fp);
+        }
+        else {
+            fwrite(&zero, sizeof(vmarg_t), 1, fp);
+            fwrite(&zero, sizeof(int), 1, fp);
+        }
+
+        fwrite(&instructions[i]->src_line, sizeof(int), 1, fp);
     }
 }
 

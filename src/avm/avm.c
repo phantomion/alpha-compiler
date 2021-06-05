@@ -1,10 +1,9 @@
 #include "avm.h"
-#include "../generator.h"
-#include "../icode.h"
 #include "../vm_structs.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 avm_memcell stack[AVM_STACKSIZE];
 avm_memcell ax, bx, cx;
@@ -18,8 +17,13 @@ unsigned total_actuals = 0;
 instruction* code = null;
 
 extern double* num_consts;
+extern unsigned total_num_consts;
 extern char** string_consts;
+extern unsigned total_string_consts;
 extern char** lib_funcs;
+extern unsigned total_lib_funcs;
+extern user_func** user_funcs;
+extern unsigned total_user_funcs;
 
 
 static void avm_initstack() {
@@ -201,7 +205,7 @@ void execute_assign(instruction* instr) {
     avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*) 0);
     avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
-    assert(lv && (&stack[AVM_STACKSIZE-1] >= lv && lv > &stack[top] || lv == &retval));
+    assert(lv && ((&stack[AVM_STACKSIZE-1] >= lv && lv > &stack[top]) || lv == &retval));
     assert(rv);
 
     avm_assign(lv, rv);
@@ -269,7 +273,6 @@ void avm_callsaveenvironment() {
     avm_push_envvalue(topsp);
 }
 
-
 // TO BE COMPLETED ---------------------------------------
 user_func* avm_getfuncinfo(unsigned address) {
     user_func* func = malloc(sizeof(user_func));
@@ -299,6 +302,23 @@ unsigned avm_get_envvalue(unsigned i) {
     return val;
 }
 
+typedef void (*library_func_t)(void);
+library_func_t avm_getlibraryfunc(char* id);
+
+void avm_calllibfunc(char* id) {
+    library_func_t f = avm_getlibraryfunc(id);
+
+    if(!f) {
+        printf("Error: Unsupported lib func \'%s\' called!\n", id);
+        execution_finished = 1;
+    }
+    else {
+        topsp = top;
+        total_actuals = 0;
+        (*f)();
+        if(!execution_finished) execute_funcend((instruction*) 0);
+    }
+}
 
 unsigned avm_total_actuals() {
     return avm_get_envvalue(topsp + AVM_NUMACTUALS_OFFSET);
@@ -409,7 +429,7 @@ void execute_arithmetic(instruction* instr) {
     avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
     avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
 
-    assert(lv && (&stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top] || lv == &retval));
+    assert(lv && ((&stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top]) || lv == &retval));
     assert(rv1 && rv2);
 
     if(rv1->type != number_m || rv2->type != number_m) {
@@ -595,11 +615,9 @@ void libfunc_argument() {
     }
 }
 
+avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {return null;}
 
-avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index);
-
-
-void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content);
+void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content) {}
 
 
 void execute_uminus(instruction* instr) {}
@@ -712,7 +730,7 @@ void execute_funcend(instruction* instr) {
 
 void execute_tablecreate(instruction* instr) {
     avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*) 0);
-    assert(lv && (&stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top] || lv == &retval));
+    assert(lv && ((&stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top]) || lv == &retval));
 
     avm_memcell_clear(lv);
 
@@ -727,7 +745,7 @@ void execute_tablegetelem(instruction* instr) {
     avm_memcell* t = avm_translate_operand(instr->arg1, (avm_memcell*) 0);
     avm_memcell* i = avm_translate_operand(instr->arg2, &ax);
 
-    assert(lv && &stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top] || lv == &retval);
+    assert(lv && ((&stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top]) || lv == &retval));
     assert(lv && &stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top]);
     assert(i);
 
@@ -763,6 +781,7 @@ void execute_tablesetelem(instruction* instr) {
         avm_tablesetelem(t->data.table_val, i, c);
 }
 
+void avm_registerlibfunc(char* id, library_func_t addr) {}
 
 typedef void (*library_func_t)(void);
 
@@ -797,22 +816,6 @@ library_func_t avm_getlibraryfunc(char* id) {
 }
 
 
-void avm_calllibfunc(char* id) {
-    library_func_t f = avm_getlibraryfunc(id);
-
-    if(!f) {
-        printf("Error: Unsupported lib func \'%s\' called!\n", id);
-        execution_finished = 1;
-    }
-    else {
-        topsp = top;
-        total_actuals = 0;
-        (*f)();
-        if(!execution_finished) execute_funcend((instruction*) 0);
-    }
-}
-
-
 void avm_registerlibfunc(char* id, library_func_t addr); // TO BE IMPLEMENTED
 
 
@@ -823,4 +826,126 @@ void avm_initialize() {
     avm_registerlibfunc("typeof", libfunc_typeof);
     avm_registerlibfunc("totalarguments", libfunc_totalarguments);
     avm_registerlibfunc("argument", libfunc_argument);
+}
+
+void consts_newstring(char* s, int i) {
+    if (!string_consts)
+        string_consts = calloc(1, total_string_consts * sizeof(char *));
+
+    string_consts[i] = s;
+}
+
+void consts_newnumber(double n, int i) {
+    if (!num_consts)
+        num_consts = calloc(1, total_num_consts * sizeof(double));
+
+    num_consts[i] = n;
+}
+
+void new_userfunc(user_func* user, int i) {
+    if (!user_funcs)
+        user_funcs = calloc(1, total_user_funcs * sizeof(user_func));
+
+    user_funcs[i] = user;
+}
+
+void consts_newlib(char* s, int i) {
+    if (!lib_funcs)
+        lib_funcs = calloc(1, total_lib_funcs * sizeof(char *));
+
+    lib_funcs[i] = s;
+}
+
+void instr_add(instruction* instr, int i) {
+    if (!code)
+        code = calloc(1, code_size * sizeof(instruction));
+
+    instruction* ins = code + i;
+    ins->arg1 = calloc(1, sizeof(vmarg));
+    ins->arg2 = calloc(1, sizeof(vmarg));
+    ins->result = calloc(1, sizeof(vmarg));
+    ins->opcode = instr->opcode;
+    ins->arg1 = instr->arg1;
+    ins->arg2 = instr->arg2;
+    ins->result = instr->result;
+    ins->src_line = instr->src_line;
+}
+
+void read_abc_bin() {
+    char* magicnumber[9];
+    FILE* fp = fopen("../../alpha_bin.abc", "rb");
+    if (!fp) {
+        exit(EXIT_FAILURE);
+    }
+    fread(magicnumber, 9, 1, fp);
+
+    fread(&total_string_consts, sizeof(total_string_consts), 1, fp);
+    for (size_t i = 0; i < total_string_consts; i++) {
+        int str_len = 0;
+        fread(&str_len, sizeof(int), 1, fp);
+
+        char* str_const = calloc(1, str_len);
+        fread(str_const, str_len, 1, fp);
+
+        consts_newstring(str_const, i);
+    }
+
+    fread(&total_num_consts, sizeof(total_num_consts), 1, fp);
+    for (size_t i = 0; i < total_num_consts; i++) {
+
+        double num_const = 0;
+        fread(&num_const, sizeof(double), 1, fp);
+
+        consts_newnumber(num_const, i);
+    }
+
+    fread(&total_user_funcs, sizeof(total_user_funcs), 1, fp);
+    for (size_t i = 0; i < total_user_funcs; i++) {
+        user_func* func = calloc(1, sizeof(user_func));
+        int func_id_len = 0;
+
+        fread(&func_id_len, sizeof(int), 1, fp);
+        func->id = calloc(1, func_id_len);
+
+        fread(&func->address, sizeof(int), 1, fp);
+        fread(&func->localSize, sizeof(int), 1, fp);
+        fread(func->id, func_id_len, 1, fp);
+
+        new_userfunc(func, i);
+    }
+
+    fread(&total_lib_funcs, sizeof(total_lib_funcs), 1, fp);
+    for (size_t i = 0; i < total_lib_funcs; i++) {
+        int str_len = 0;
+        fread(&str_len, sizeof(int), 1, fp);
+
+        char* lib_const = calloc(1, str_len);
+        fread(lib_const, str_len, 1, fp);
+
+        consts_newlib(lib_const, i);
+    }
+
+    fread(&code_size, sizeof(code_size), 1, fp);
+    code_size--;
+    for (size_t i = 0; i < code_size; i++) {
+        instruction* instr = calloc(1, sizeof(instruction));
+        instr->result = calloc(1, sizeof(vmarg));
+        instr->arg1 = calloc(1, sizeof(vmarg));
+        instr->arg2 = calloc(1, sizeof(vmarg));
+
+        fread(&instr->opcode, sizeof(vmarg_t), 1, fp);
+        fread(&instr->result->type, sizeof(vmarg_t), 1, fp);
+        fread(&instr->result->val, sizeof(int), 1, fp);
+        fread(&instr->arg1->type, sizeof(vmarg_t), 1, fp);
+        fread(&instr->arg1->val, sizeof(int), 1, fp);
+        fread(&instr->arg2->type, sizeof(vmarg_t), 1, fp);
+        fread(&instr->arg2->val, sizeof(int), 1, fp);
+        fread(&instr->src_line, sizeof(int), 1, fp);
+        instr_add(instr, i);
+    }
+}
+
+int main(int argc, char** argv) {
+    read_abc_bin();
+    return 0;
 }
