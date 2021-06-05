@@ -1,5 +1,7 @@
 #include "vm_structs.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 double* num_consts = null;
 unsigned total_num_consts = 0;
