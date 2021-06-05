@@ -9,14 +9,14 @@
 #include "icode.h"
 #include "manager.h"
 
-double* num_consts = null;
-unsigned total_num_consts = 0;
-char** string_consts = null;
-unsigned total_string_consts = 0;
-char** lib_funcs = null;
-unsigned total_lib_funcs = 0;
-user_func** user_funcs = null;
-unsigned total_user_funcs = 0;
+extern double* num_consts;
+extern unsigned total_num_consts;
+extern char** string_consts;
+extern unsigned total_string_consts;
+extern char** lib_funcs;
+extern unsigned total_lib_funcs;
+extern user_func** user_funcs;
+extern unsigned total_user_funcs;
 int curr_processed_quad = 0;
 
 extern quad* quads;

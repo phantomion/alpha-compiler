@@ -15,6 +15,17 @@
 #define AVM_SAVEDTOP_OFFSET     +2
 #define AVM_SAVEDTOPSP_OFFSET   +1
 
+#define execute_add execute_arithmetic
+#define execute_sub execute_arithmetic
+#define execute_mul execute_arithmetic
+#define execute_div execute_arithmetic
+#define execute_mod execute_arithmetic
+
+#define execute_if_less execute_compare
+#define execute_if_lesseq execute_compare
+#define execute_if_greater execute_compare
+#define execute_if_greatereq execute_compare
+
 typedef enum avm_memcell_t {
     number_m,
     string_m,
@@ -68,7 +79,7 @@ char* libfuncs_getused(unsigned index);
 
 void libfunc_typeof();
 void libfunc_totalarguments();
-void avm_warning(char* msg);
+//void avm_warning(char* msg);
 void avm_error(char* msg);
 avm_memcell* avm_translate_operand(vmarg* arg, avm_memcell* reg);
 void avm_assign(avm_memcell* lv, avm_memcell* rv);

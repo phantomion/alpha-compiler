@@ -187,7 +187,7 @@ void execute_assign(instruction* instr) {
     avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
     assert(lv && (&stack[AVM_STACKSIZE-1] >= lv && lv > &stack[top] || lv == &retval));
-    assert(rv); // Is this right???????
+    assert(rv);
 
     avm_assign(lv, rv);
 }
@@ -219,7 +219,9 @@ void execute_cycle() {
 
 void avm_assign(avm_memcell* lv, avm_memcell* rv) {
     if(lv == rv) return;
-    if(lv->type == table_m && rv->type == table_m && lv->data.table_val == rv->data.table_val) return;
+    if(lv->type == table_m &&
+            rv->type == table_m &&
+            lv->data.table_val == rv->data.table_val) return;
 
     if(rv->type == undef_m) avm_warning("Assigning from \'undef\' content!");
 
@@ -233,7 +235,6 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
 void avm_dec_top() {
     if(!top) {
         avm_error("stack overflow");
-        execution_finished = 1;
     }
     else --top;
 }
@@ -253,7 +254,7 @@ void avm_callsaveenvironment() {
 
 user_func* avm_getfuncinfo(unsigned address);
 
-void execute_funcenter(instruction* instr) {
+void execute_funcstart(instruction* instr) {
 
     avm_memcell* func = avm_translate_operand(instr->result, &ax);
     assert(func);
@@ -350,7 +351,8 @@ typedef double (*arithmetic_func_t)(double x, double y);
 double add_impl(double x, double y) {return x + y;}
 double sub_impl(double x, double y) {return x - y;}
 double mul_impl(double x, double y) {return x * y;}
-double div_impl(double x, double y) {return x / y;}
+double div_impl(double x, double y) {return x / y;} // check error div 0
+// check error div 0
 double mod_impl(double x, double y) {return ((unsigned) x % (unsigned) y);}
 
 arithmetic_func_t arithmetic_funcs[] = {
@@ -398,23 +400,24 @@ cmp_func_t compare_funcs[] = {
 };
 
 void execute_compare(instruction* instr) {
-    avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*) 0); // IS THIS RIGHT?
+    assert(instr->result->type == label_a);
+
     avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
     avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+    unsigned char result = 0;
 
-    assert(lv && (&stack[AVM_STACKSIZE - 1] >= lv && lv > &stack[top] || lv == &retval));
     assert(rv1 && rv2);
 
     if(rv1->type != number_m || rv2->type != number_m) {
         avm_error("Not a number in compare!");
-        execution_finished = 1;
     }
     else {
         cmp_func_t op = compare_funcs[instr->opcode - jle_v]; // Is this right?????
-        avm_memcell_clear(lv);
-        lv->type = bool_m;
-        lv->data.bool_val = (*op)(rv1->data.num_val, rv2->data.num_val);
+        result = (*op)(rv1->data.num_val, rv2->data.num_val);
     }
+
+    if(!execution_finished && result)
+        pc = instr->result->val;
 }
 
 typedef unsigned char (*tobool_func_t)(avm_memcell*);
@@ -485,11 +488,6 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index);
 
 void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content);
 
-void execute_add(instruction* instr) {}
-void execute_sub(instruction* instr) {}
-void execute_mul(instruction* instr) {}
-void execute_div(instruction* instr) {}
-void execute_mod(instruction* instr) {}
 void execute_uminus(instruction* instr) {}
 void execute_and(instruction* instr) {}
 void execute_or(instruction* instr) {}
@@ -519,10 +517,6 @@ void execute_if_eq(instruction* instr) {
 }
 
 void execute_if_noteq(instruction* instr) {}
-void execute_if_lesseq(instruction* instr) {}
-void execute_if_greatereq(instruction* instr) {}
-void execute_if_less(instruction* instr) {}
-void execute_if_greater(instruction* instr) {}
 void execute_jump(instruction* instr) {}
 
 void execute_call(instruction* instr) {
@@ -556,7 +550,6 @@ void execute_call(instruction* instr) {
 void execute_param(instruction* instr) {}
 void execute_ret(instruction* instr) {}
 void execute_getretval(instruction* instr) {}
-void execute_funcstart(instruction* instr) {}
 
 void execute_funcend(instruction* instr) {
     unsigned old_top = top;
