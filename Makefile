@@ -15,6 +15,7 @@ OBJS := $(SRC:%.c=$(OBJ_DIR)/%.o)
 steps:
 	make parsers
 	make all
+	make -C src/avm/
 
 all: directories $(TARGET)
 
