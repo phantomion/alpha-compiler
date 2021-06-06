@@ -3,3 +3,4 @@ src/parser.output
 bin/
 src/parser*
 src/analyzer*
+alpha_*

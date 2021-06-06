@@ -1,26 +1,22 @@
-/*y = 2 < 3;*/
-/*x = y;*/
-/*x = (4 * 9) + 10 - (5 / 3);*/
-/*x = 4 + 3 / 2;*/
-/*x = -x;*/
-/*y = 2 >= 10;*/
-/*y = 2 == 2;*/
-/*y = x != 4;*/
-/*d = true and false;*/
-/*qq = 10;*/
-/*a = "sure";*/
-/*pi = 3.14;*/
-/*nope = false;*/
-/*x++;*/
-/*--x;*/
-/*x = not x;*/
-/*x = f() and g(2);*/
-/*a = 2;*/
-/*a = a < b or c < d and e < f;*/
-/*a = not (not b and not c);*/
-/*a = not (a < b);*/
-/*a = b;*/
-a = a + 2;
-/*a = d - y + ++x;*/
-a = -a;
 a = "ela";
+print(a);
+print(typeof(a));
+c = 2 + 5;
+print(c);
+
+a = true;
+print(a);
+
+
+function fact(n) {
+    if (n==2) {
+        print(n);
+        return 1;
+    }
+    return 2;
+    /*print(n);*/
+}
+
+x = fact(4);
+
+print(x);

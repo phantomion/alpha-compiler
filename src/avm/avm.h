@@ -14,6 +14,9 @@
 #define AVM_SAVEDPC_OFFSET      +3
 #define AVM_SAVEDTOP_OFFSET     +2
 #define AVM_SAVEDTOPSP_OFFSET   +1
+#define COLOR_RED "\x1b[31m"
+#define COLOR_RESET "\x1b[0m"
+#define COLOR_YELLOW "\x1b[33m"
 
 #define execute_add execute_arithmetic
 #define execute_sub execute_arithmetic
@@ -155,8 +158,6 @@ void execute_if_greater(instruction* instr);
 void execute_jump(instruction* instr);
 void execute_call(instruction* instr);
 void execute_param(instruction* instr);
-void execute_ret(instruction* instr);
-void execute_getretval(instruction* instr);
 void execute_funcstart(instruction* instr);
 void execute_funcend(instruction* instr);
 void execute_tablecreate(instruction* instr);

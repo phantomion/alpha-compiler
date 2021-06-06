@@ -80,6 +80,7 @@ void generate(vmopcode op, quad* quad) {
     t->arg2 = malloc(sizeof(vmarg));
     t->result = malloc(sizeof(vmarg));
     t->opcode = op;
+    t->src_line = quad->line;
     make_operand(quad->arg1, t->arg1);
     make_operand(quad->arg2, t->arg2);
     if (!t->arg2->type && !t->arg2->val)
@@ -358,16 +359,17 @@ void generate_param(quad* quad) {
     emit_instr(t);
 }
 
+// careful here ta allazoume edw pera ara prosoxh meta
 void generate_ret(quad* quad) {
     quad->taddress = curr_instr;
     instruction* t = calloc(1, sizeof(instruction));
-
     t->opcode = assign_v;
     t->arg1 = calloc(1, sizeof(vmarg));
     t->result = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
 
+    make_operand(quad->result, t->arg1);
     t->result->type = retval_a;
-    make_operand(quad->arg1, t->arg1);
     emit_instr(t);
 }
 
@@ -377,6 +379,7 @@ void generate_getretval(quad* quad){
     t->opcode = assign_v;
     t->arg1 = calloc(1, sizeof(vmarg));
     t->result = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
 
     make_operand(quad->result, t->result);
     t->arg1->type = retval_a;

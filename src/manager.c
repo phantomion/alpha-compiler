@@ -488,7 +488,7 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
 
 
 unsigned int manage_ifprefix(expr* ex) {
-    create_short_circuit_assigns(ex);
+    ex = create_short_circuit_assigns(ex);
     emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
     emit(jump, null, null, null, 0, yylineno);
@@ -521,7 +521,7 @@ unsigned int manage_whilestart() {
 
 
 unsigned int manage_whilecond(expr* ex) {
-    create_short_circuit_assigns(ex);
+    ex = create_short_circuit_assigns(ex);
     emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
     emit(jump, null, null, null, 0, yylineno);

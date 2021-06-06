@@ -10,6 +10,7 @@ function foo() {
     }
     function foo(bar, takos, foo) {
         takos--;
+        x++;
         bar = 5;
         foo = 5;
         x = 5;
