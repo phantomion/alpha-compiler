@@ -81,10 +81,13 @@ void generate(vmopcode op, quad* quad) {
     t->result = malloc(sizeof(vmarg));
     t->opcode = op;
     t->src_line = quad->line;
+
     make_operand(quad->arg1, t->arg1);
     make_operand(quad->arg2, t->arg2);
+
     if (!t->arg2->type && !t->arg2->val)
         t->arg2 = null;
+
     make_operand(quad->result, t->result);
     quad->taddress = curr_instr;
     emit_instr(t);
@@ -243,6 +246,7 @@ void generate_relational(vmopcode op, quad* quad) {
     t->opcode = op;
     t->arg1 = calloc(1, sizeof(vmarg));
     t->arg2 = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
 
     make_operand(quad->arg1, t->arg1);
     make_operand(quad->arg2, t->arg2);
@@ -301,6 +305,7 @@ void generate_uminus(quad* quad) {
     t->arg2 = malloc(sizeof(vmarg));
     t->result = malloc(sizeof(vmarg));
     t->opcode = mul_v;
+    t->src_line = quad->line;
 
     make_operand(quad->arg1, t->arg1);
     make_operand(manage_number(-1), t->arg2);
@@ -344,6 +349,7 @@ void generate_call(quad* quad) {
     instruction* t = calloc(1, sizeof(instruction));
     t->opcode = call_v;
     t->result = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
 
     make_operand(quad->result, t->result);
     emit_instr(t);
@@ -354,6 +360,7 @@ void generate_param(quad* quad) {
     instruction* t = calloc(1, sizeof(instruction));
     t->opcode = pusharg_v;
     t->result = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
 
     make_operand(quad->result, t->result);
     emit_instr(t);
@@ -393,6 +400,8 @@ void generate_funcstart(quad* quad) {
     instruction* t = calloc(1, sizeof(instruction));
     t->opcode = funcenter_v;
     t->result = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
+
     make_operand(quad->result, t->result);
     emit_instr(t);
 }
@@ -403,6 +412,8 @@ void generate_funcend(quad* quad){
     t->opcode = funcexit_v;
 
     t->result = calloc(1, sizeof(vmarg));
+    t->src_line = quad->line;
+
     make_operand(quad->result, t->result);
     emit_instr(t);
 }

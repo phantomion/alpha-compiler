@@ -10,3 +10,5 @@ a = [{x > 2 and d == 2: y == 2 or h >= 3}];
 x = not x;
 f().x[ a > 3 and b];
 x = f(x >3 and x, b == 3 or a);
+y = a and b > 10 or x == 2;
+not a and b > 10 or x == 2;

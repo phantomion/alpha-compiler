@@ -149,16 +149,16 @@
 
 program:    stmt_list;
 
-stmt:       expr SEMICOLON {$$ = null; reset_temp();}
-            | ifstmt {$$ = null;}
-            | whilestmt {$$ = null;}
-            | forstmt {$$ = null;}
-            | returnstmt {$$ = null;}
+stmt:       expr SEMICOLON {$$ = null; reset_temp(); $1 = create_short_circuit_assigns($1);}
+            | ifstmt {$$ = null; reset_temp();}
+            | whilestmt {$$ = null; reset_temp();}
+            | forstmt {$$ = null; reset_temp();}
+            | returnstmt {$$ = null; reset_temp();}
             | break_stmt    {$$ = $1;}
             | continue_stmt {$$ = $1;}
-            | block {$$ = $1;}
-            | funcdef {$$ = null;}
-            | SEMICOLON {$$ = null;}
+            | block {$$ = $1; reset_temp();}
+            | funcdef {$$ = null; reset_temp();}
+            | SEMICOLON {$$ = null; reset_temp();}
             | comment {$$ = null;}
             ;
 
@@ -248,12 +248,12 @@ normcall:   LPAREN elist RPAREN {$$ = manage_normcall($2);}
 methodcall: RANGE ID LPAREN elist RPAREN {$$ = manage_methodcall($2, $4);}
 
 
-elist:      expr {create_short_circuit_assigns($1);} commaexpr {$$ = manage_elist($1, $3);}
+elist:      expr {$1 = create_short_circuit_assigns($1);} commaexpr {$$ = manage_elist($1, $3);}
             | {$$ = null;}
             ;
 
 
-commaexpr:  COMMA expr {create_short_circuit_assigns($2);} commaexpr {$$ = manage_elist($2, $4);}
+commaexpr:  COMMA expr {$2 = create_short_circuit_assigns($2);} commaexpr {$$ = manage_elist($2, $4);}
             | {$$ = null;}
             ;
 
@@ -272,7 +272,7 @@ indexelemlist:  COMMA indexelem indexelemlist {$$ = manage_indexelemlist($2, $3)
                 ;
 
 
-indexelem:  LCURLY expr {create_short_circuit_assigns($2);} COLON expr RCURLY {$$ = manage_indexelem($2, $5);}
+indexelem:  LCURLY expr {$2 = create_short_circuit_assigns($2);} COLON expr RCURLY {$$ = manage_indexelem($2, $5);}
             ;
 
 
