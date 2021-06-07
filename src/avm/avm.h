@@ -6,6 +6,7 @@
 #define AVM_STACKSIZE 4096
 #define AVM_WIPEOUT(m) memset(&(m), 0, sizeof(m))
 #define AVM_TABLE_HASHSIZE 211
+#define HASH_MULTIPLIER 65599
 #define null NULL
 #define AVM_STACKENV_SIZE 4
 #define AVM_MAX_INSTRUCTIONS (unsigned) nop_v
@@ -28,6 +29,8 @@
 #define execute_if_lesseq execute_compare
 #define execute_if_greater execute_compare
 #define execute_if_greatereq execute_compare
+
+#define EUCMOD(a, b) (a < 0 ? (((a % b) + b) % b) : (a % b))
 
 typedef enum avm_memcell_t {
     number_m,

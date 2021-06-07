@@ -383,11 +383,52 @@ char* number_tostring(avm_memcell* m) {return strdup(itoa(m->data.num_val));}
 char* string_tostring(avm_memcell* m) {return strdup(m->data.str_val);}
 char* bool_tostring(avm_memcell* m) {return strdup((m->data.bool_val) ? "true" : "false");}
 char* table_tostring(avm_memcell* m) {
-    char* table = calloc(1, 0);
-    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+    char* table = malloc(8);
+    table = "Table: \n";
 
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* num_bucket = m->data.table_val->num_indexed[i];
+
+        while(num_bucket) {
+            char* key_val = itoa((int)num_bucket->key.data.num_val);
+            table = realloc(table, strlen(table) + strlen(key_val));
+            strcat(table, key_val);
+
+            table = realloc(table, strlen(table) + 2);
+            strcat(table, ": ");
+
+            char* val_val = avm_tostring(&num_bucket->value);
+            table = realloc(table, strlen(table) + strlen(val_val));
+            strcat(table, val_val);
+
+            table = realloc(table, strlen(table) + 1);
+            strcat(table, "\n");
+
+            num_bucket = num_bucket->next;
+        }
+
+        avm_table_bucket* str_bucket = m->data.table_val->str_indexed[i];
+
+        while(str_bucket) {
+            char* key_val = num_bucket->key.data.str_val;
+            table = realloc(table, strlen(table) + strlen(key_val));
+            strcat(table, key_val);
+
+            table = realloc(table, strlen(table) + 2);
+            strcat(table, ": ");
+
+            char* val_val = avm_tostring(&str_bucket->value);
+            table = realloc(table, strlen(table) + strlen(val_val));
+            strcat(table, val_val);
+
+            table = realloc(table, strlen(table) + 1);
+            strcat(table, "\n");
+
+            str_bucket = str_bucket->next;
+        }
     }
-    return null;
+
+    return table;
 } // Sweet mother of all that is good and pure
 char* userfunc_tostring(avm_memcell* m) {return itoa(m->data.func_val);}
 char* libfunc_tostring(avm_memcell* m) {return m->data.libfunc_val;}
@@ -464,8 +505,6 @@ void execute_arithmetic(instruction* instr) {
     }
 }
 
-
-// Tread carefully
 
 typedef unsigned (*cmp_func_t)(double x, double y);
 
@@ -578,7 +617,6 @@ void libfunc_totalarguments() {
 }
 
 
-// Needs revision
 void libfunc_argument() {
     unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
     avm_memcell_clear(&retval);
@@ -612,38 +650,96 @@ void libfunc_argument() {
         else {
             retval.data = actual->data;
         }
-
-        /*switch(retval.type) {*/
-            /*case number_m:*/
-                /*retval.data.num_val = actual->data.num_val;*/
-                /*break;*/
-            /*case string_m:*/
-                /*retval.data.str_val = actual->data.str_val;*/
-                /*break;*/
-            /*case bool_m:*/
-                /*retval.data.bool_val = actual->data.bool_val;*/
-                /*break;*/
-            /*case table_m:*/
-                /*retval.data.table_val = actual->data.table_val;*/
-                /*break;*/
-            /*case userfunc_m:*/
-                /*retval.data.func_val = actual->data.func_val;*/
-                /*break;*/
-            /*case libfunc_m:*/
-                /*retval.data.libfunc_val = actual->data.libfunc_val;*/
-                /*break;*/
-            /*case nil_m:*/
-            /*case undef_m:*/
-                /*break;*/
-            /*default:*/
-                /*avm_error("Unknown type of desired argument in \'argument\'!");*/
-        /*}*/
     }
 }
 
-avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {return null;}
 
-void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content) {}
+unsigned int avm_tablehashstring(char* index) {
+    size_t ui;
+    unsigned int uiHash = 0U;
+
+    for (ui = 0U; index[ui] != '\0'; ui++)
+        uiHash = uiHash * HASH_MULTIPLIER + index[ui];
+
+    return uiHash % AVM_TABLE_HASHSIZE;
+}
+
+
+unsigned int avm_tablehashnumber(double index) {
+    return EUCMOD((int)index, AVM_TABLE_HASHSIZE);
+}
+
+
+avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
+    if(index->type == string_m) {
+        avm_table_bucket* bucket = table->str_indexed[avm_tablehashstring(index->data.str_val)];
+
+        while(bucket) {
+            if(strcmp(index->data.str_val, bucket->value.data.str_val) == 0) return &bucket->value;
+            bucket = bucket->next;
+        }
+
+        return null;
+    }
+    else if(index->type == number_m) {
+        avm_table_bucket* bucket = table->num_indexed[avm_tablehashnumber(index->data.num_val)];
+
+        while(bucket) {
+            if(index->data.num_val == bucket->value.data.num_val) return &bucket->value;
+            bucket = bucket->next;
+        }
+
+        return null;
+    }
+
+    avm_error("Illegal table index type!");
+    return null;
+}
+
+
+void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content) {
+    avm_table_bucket* new = malloc(sizeof(avm_table_bucket));
+    new->key = *index;
+    new->value = *content;
+    new->next = null;
+
+    avm_table_bucket* prev = null;
+
+    if(index->type == string_m) {
+        avm_table_bucket* bucket = table->str_indexed[avm_tablehashstring(index->data.str_val)];
+
+        if(bucket){
+            while(bucket) {
+                prev = bucket;
+                bucket = bucket->next;
+            }
+            prev->next = bucket;
+        }
+        else {
+            table->str_indexed[avm_tablehashstring(index->data.str_val)] = new;
+        }
+
+        return;
+    }
+    else if(index->type == number_m) {
+        avm_table_bucket* bucket = table->num_indexed[avm_tablehashnumber(index->data.num_val)];
+
+        if(bucket){
+            while(bucket) {
+                prev = bucket;
+                bucket = bucket->next;
+            }
+            prev->next = bucket;
+        }
+        else {
+            table->num_indexed[avm_tablehashnumber(index->data.num_val)] = new;
+        }
+
+        return;
+    }
+
+    avm_error("Illegal table index type!");
+}
 
 
 void execute_uminus(instruction* instr) {}
@@ -792,13 +888,7 @@ void execute_tablegetelem(instruction* instr) {
     else {
         avm_memcell* content = avm_tablegetelem(t->data.table_val, i);
         if(content) avm_assign(lv, content);
-        else {
-            /*char* ts = avm_tostring(t);*/
-            /*char* is = avm_tostring(i);*/
-            avm_warning("Element not found!");
-            /*free(ts);*/
-            /*free(is);*/
-        }
+        else avm_warning("Element not found!");
     }
 }
 
@@ -853,26 +943,13 @@ library_func_t avm_getlibraryfunc(char* id) {
 }
 
 
-void avm_registerlibfunc(char* id, library_func_t addr) {
-
-}
-
-
-void avm_initialize() {
-    avm_initstack();
-
-    avm_registerlibfunc("print", libfunc_print);
-    avm_registerlibfunc("typeof", libfunc_typeof);
-    avm_registerlibfunc("totalarguments", libfunc_totalarguments);
-    avm_registerlibfunc("argument", libfunc_argument);
-}
-
 void consts_newstring(char* s, int i) {
     if (!string_consts)
         string_consts = calloc(1, total_string_consts * sizeof(char *));
 
     string_consts[i] = s;
 }
+
 
 void consts_newnumber(double n, int i) {
     if (!num_consts)
@@ -881,6 +958,7 @@ void consts_newnumber(double n, int i) {
     num_consts[i] = n;
 }
 
+
 void new_userfunc(user_func* user, int i) {
     if (!user_funcs)
         user_funcs = calloc(1, total_user_funcs * sizeof(user_func));
@@ -888,12 +966,14 @@ void new_userfunc(user_func* user, int i) {
     user_funcs[i] = user;
 }
 
+
 void consts_newlib(char* s, int i) {
     if (!lib_funcs)
         lib_funcs = calloc(1, total_lib_funcs * sizeof(char *));
 
     lib_funcs[i] = s;
 }
+
 
 void instr_add(instruction* instr, int i) {
     if (!code)
@@ -910,10 +990,12 @@ void instr_add(instruction* instr, int i) {
     ins->src_line = instr->src_line;
 }
 
+
 void set_globals(unsigned offset) {
     if (offset > total_globals)
         total_globals = offset;
 }
+
 
 void read_abc_bin() {
     char* magicnumber[9];
@@ -995,9 +1077,10 @@ void read_abc_bin() {
     }
 }
 
+
 int main(int argc, char** argv) {
     read_abc_bin();
-    avm_initialize();
+    avm_initstack();
     top = AVM_STACKSIZE - total_globals - 2;
     topsp = AVM_STACKSIZE - total_globals - 2;
 

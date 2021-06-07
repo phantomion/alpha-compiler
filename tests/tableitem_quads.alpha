@@ -1,4 +1,3 @@
-t.a.b = x;
-local x = t.a.b.c;
-gg = t["a"];
-t["b"] = 10;
+t = [4, 56, 100];
+
+print(t);
