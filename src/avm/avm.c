@@ -349,9 +349,10 @@ void libfunc_print() {
     unsigned n = avm_total_actuals();
     for(unsigned i = 0; i < n; i++) {
         char* s = avm_tostring(avm_get_actual(i));
-        puts(s);
+        printf("%s", s);
         free(s);
     }
+    printf("\n");
 }
 
 
@@ -381,7 +382,9 @@ char* itoa(int val) {
 
 char* number_tostring(avm_memcell* m) {return strdup(itoa(m->data.num_val));}
 char* string_tostring(avm_memcell* m) {return strdup(m->data.str_val);}
-char* bool_tostring(avm_memcell* m) {return strdup((m->data.bool_val) ? "true" : "false");}
+char* bool_tostring(avm_memcell* m) {
+    return strdup(m->data.bool_val ? "true" : "false");
+}
 char* table_tostring(avm_memcell* m) {
     char* table = calloc(1, 0);
     for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
@@ -389,10 +392,10 @@ char* table_tostring(avm_memcell* m) {
     }
     return null;
 } // Sweet mother of all that is good and pure
-char* userfunc_tostring(avm_memcell* m) {return itoa(m->data.func_val);}
+char* userfunc_tostring(avm_memcell* m) {return strdup(itoa(m->data.func_val));}
 char* libfunc_tostring(avm_memcell* m) {return m->data.libfunc_val;}
-char* nil_tostring(avm_memcell* m) {return "nil";}
-char* undef_tostring(avm_memcell* m) {return "undef";}
+char* nil_tostring(avm_memcell* m) {return strdup("nil");}
+char* undef_tostring(avm_memcell* m) {return strdup("undef");}
 
 
 tostring_func_t tostring_funcs[] = {
@@ -562,6 +565,50 @@ void libfunc_typeof() {
 }
 
 
+void libfunc_input() {
+    unsigned n = avm_total_actuals();
+
+    if (n != 0) {
+        avm_error("Expected ZERO arguments in \'input\'!");
+    }
+    else {
+        avm_memcell_clear(&retval);
+        char* input = calloc(1, 256);
+        int input_max = 256;
+        int i = 0;
+        char c;
+        while ((c = getc(stdin)) != '\n') {
+            if (i == input_max) {
+                input = realloc(input, input_max + 256);
+                input_max = input_max + 256;
+            }
+            input[i++] = c;
+        }
+        double num;
+
+        if ((num = atof(input))) {
+            retval.type = number_m;
+            retval.data.num_val = num;
+        }
+        else if (strcmp(input, "true") == 0) {
+            retval.type = bool_m;
+            retval.data.bool_val = 1;
+        }
+        else if (strcmp(input, "false") == 0) {
+            retval.type = bool_m;
+            retval.data.bool_val = 0;
+        }
+        else if (strcmp(input, "nil") == 0) {
+            retval.type = nil_m;
+        }
+        else {
+            retval.type = string_m;
+            retval.data.str_val = input;
+        }
+    }
+}
+
+
 void libfunc_totalarguments() {
     unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
     avm_memcell_clear(&retval);
@@ -677,7 +724,7 @@ void execute_if_eq(instruction* instr) {
             result = strcmp(rv1->data.str_val, rv2->data.str_val) == 0;
         }
         else {
-            result = (*tobool_funcs[rv1->type])(rv1) == (*tobool_funcs[rv1->type])(rv2); // Is this right?
+            result = (*tobool_funcs[rv1->type])(rv1) == (*tobool_funcs[rv1->type])(rv2);
         }
     }
 
@@ -711,7 +758,7 @@ void execute_if_noteq(instruction* instr) {
             result = strcmp(rv1->data.str_val, rv2->data.str_val) != 0;
         }
         else {
-            result = (*tobool_funcs[rv1->type])(rv1) != (*tobool_funcs[rv1->type])(rv2); // Is this right?
+            result = (*tobool_funcs[rv1->type])(rv1) != (*tobool_funcs[rv1->type])(rv2);
         }
     }
 
@@ -825,7 +872,8 @@ library_func_t library_funcs[] = {
     libfunc_print,
     libfunc_typeof,
     libfunc_totalarguments,
-    libfunc_argument
+    libfunc_argument,
+    libfunc_input
 };
 
 
@@ -833,12 +881,13 @@ char* lib_func_array[] = {
     "print",
     "typeof",
     "totalarguments",
-    "argument"
+    "argument",
+    "input"
 }; // To the person reading this: If you add a function here, increment for loop below.
 
 
 unsigned get_libfunc_id(char* id) {
-    for(unsigned i = 0; i < 4; ++i) {
+    for(unsigned i = 0; i < 5; ++i) {
         if(strcmp(lib_func_array[i], id) == 0) {
             return i;
         }
@@ -903,6 +952,7 @@ void instr_add(instruction* instr, int i) {
     ins->arg1 = calloc(1, sizeof(vmarg));
     ins->arg2 = calloc(1, sizeof(vmarg));
     ins->result = calloc(1, sizeof(vmarg));
+
     ins->opcode = instr->opcode;
     ins->arg1 = instr->arg1;
     ins->arg2 = instr->arg2;

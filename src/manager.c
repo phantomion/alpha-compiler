@@ -181,7 +181,7 @@ expr* manage_function(char *id) {
 
 char* new_anonymous_function() {
     anonymous_functions++;
-    char* name = malloc(1 + strlen(itoa(anonymous_functions)));
+    char* name = calloc(1, 1 + strlen(itoa(anonymous_functions)));
     strcat(name, "$");
     strcat(name, itoa(anonymous_functions));
     return name;
@@ -611,7 +611,7 @@ expr* manage_array_item(expr* lv, expr* ex) {
 
     if (!lv) return newexpr(nil_e);
 
-    create_short_circuit_assigns(ex);
+    ex = create_short_circuit_assigns(ex);
 
     lv = emit_iftableitem(lv);
     expr* new = newexpr(tableitem_e);
@@ -698,12 +698,17 @@ expr* manage_elist(expr* expr, struct expr* curr_list) {
 expr* manage_tablemake(expr* elist) {
     expr* t = newexpr(newtable_e);
     int i = 0;
+    expr* tmp_elist = elist;
+    while (tmp_elist) {
+        ++i;
+        tmp_elist = tmp_elist->next;
+    }
 
     t->sym = new_temp();
     emit(tablecreate, null, null, t, curr_quad, yylineno);
 
     while (elist) {
-        emit(tablesetelem, manage_number(i++), elist, t, curr_quad, yylineno);
+        emit(tablesetelem, manage_number(--i), elist, t, curr_quad, yylineno);
         elist = elist->next;
     }
 
@@ -712,7 +717,7 @@ expr* manage_tablemake(expr* elist) {
 
 
 index_elem* manage_indexelem(expr* key, expr* value) {
-    create_short_circuit_assigns(value);
+    value = create_short_circuit_assigns(value);
     index_elem* elem = calloc(1, sizeof(index_elem));
     elem->key = key;
     elem->value = value;
@@ -758,7 +763,7 @@ int manage_M() {
 
 
 for_stmt* manage_forprefix(int M, expr* ex) {
-    create_short_circuit_assigns(ex);
+    ex = create_short_circuit_assigns(ex);
     for_stmt* prefix = calloc(1, sizeof(for_stmt));
     prefix->test = M;
     prefix->enter = curr_quad;
