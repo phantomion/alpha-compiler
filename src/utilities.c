@@ -223,6 +223,8 @@ int symtable_insert(const char* name, enum symbol_t type) {
                 if (scope_contains(name, i)) {
                     if (symtable_lookup(name, FORMAL) && (funcdef_counter < scope || i == scope))
                         return FORMAL_ARGUMENT;
+                    if ((funcdef_counter < scope || i == scope) && symtable_lookup(name, LOCALVAR))
+                        return VARS;
                     if (symtable_lookup(name, USERFUNC)) return USER_FUNC;
                     if (symtable_lookup(name, LIBFUNC)) return LIB_FUNC;
                     if (funcdef_counter == 0) return VARS;
