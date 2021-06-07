@@ -421,7 +421,7 @@ int main(int argc, char** argv) {
     yyparse();
     /*print_scopes();*/
     if (!icode_phase) exit(EXIT_SUCCESS);
-    /*print_quads();*/
+    print_quads();
     generate_all();
     write_abc_text();
     write_abc_bin();

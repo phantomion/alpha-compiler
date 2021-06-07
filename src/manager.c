@@ -539,8 +539,10 @@ void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad,
 
 
 expr* manage_relop(iopcode relop, expr* arg1, expr* arg2) {
-    check_arith(arg1, "Invalid use of comparison operator on non-arithmetic expression");
-    check_arith(arg2, "Invalid use of comparison operator on non-arithmetic expression");
+    if (relop != if_eq && relop != if_noteq) {
+        check_arith(arg1, "Invalid use of comparison operator on non-arithmetic expression");
+        check_arith(arg2, "Invalid use of comparison operator on non-arithmetic expression");
+    }
 
     expr* new = newexpr(boolexpr_e);
     new->sym = manage_arith_relop_exprs(arg1, arg2);

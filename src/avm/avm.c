@@ -163,7 +163,7 @@ avm_memcell* avm_translate_operand(vmarg* arg, avm_memcell* reg) {
         case local_a:
             return &stack[topsp - arg->val];
         case formal_a:
-            return &stack[topsp + AVM_STACKENV_SIZE + arg->val];
+            return &stack[topsp + AVM_STACKENV_SIZE + arg->val + 1];
         case retval_a:
             return &retval;
         case number_a:
@@ -358,8 +358,6 @@ void libfunc_print() {
 void execute_param(instruction* instr) {
     avm_memcell* arg = avm_translate_operand(instr->result, &ax);
     assert(arg);
-    if (arg->type == number_m)
-        printf("param %g\n", arg->data.num_val);
 
     avm_assign(&stack[top], arg);
     ++total_actuals;
@@ -737,7 +735,6 @@ void execute_call(instruction* instr) {
     switch(func->type) {
         case userfunc_m:
             pc = func->data.func_val;
-            printf("pc %d\n", pc);
             assert(pc < AVM_ENDING_PC);
             assert(code[pc].opcode == funcenter_v);
             break;
