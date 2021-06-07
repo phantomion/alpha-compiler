@@ -369,6 +369,7 @@ void execute_param(instruction* instr) {
 typedef char* (*tostring_func_t)(avm_memcell*);
 
 char* itoa(int val) {
+    if (!val) return "0";
 
     static char buf[32] = {0};
     int i = 30;
@@ -386,8 +387,8 @@ char* bool_tostring(avm_memcell* m) {
     return strdup(m->data.bool_val ? "true" : "false");
 }
 char* table_tostring(avm_memcell* m) {
-    char* table = malloc(8);
-    table = "Table: \n";
+    char* table = calloc(1, 9);
+    strcat(table, "Table: \n");
 
     for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
         avm_table_bucket* num_bucket = m->data.table_val->num_indexed[i];
@@ -409,11 +410,13 @@ char* table_tostring(avm_memcell* m) {
 
             num_bucket = num_bucket->next;
         }
+    }
 
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
         avm_table_bucket* str_bucket = m->data.table_val->str_indexed[i];
 
         while(str_bucket) {
-            char* key_val = num_bucket->key.data.str_val;
+            char* key_val = str_bucket->key.data.str_val;
             table = realloc(table, strlen(table) + strlen(key_val));
             strcat(table, key_val);
 
@@ -760,7 +763,7 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content
                 prev = bucket;
                 bucket = bucket->next;
             }
-            prev->next = bucket;
+            prev->next = new;
         }
         else {
             table->str_indexed[avm_tablehashstring(index->data.str_val)] = new;
@@ -776,7 +779,7 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content
                 prev = bucket;
                 bucket = bucket->next;
             }
-            prev->next = bucket;
+            prev->next = new;
         }
         else {
             table->num_indexed[avm_tablehashnumber(index->data.num_val)] = new;
