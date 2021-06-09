@@ -522,10 +522,10 @@ unsigned ge_impl(double x, double y) {return x >= y;}
 
 
 cmp_func_t compare_funcs[] = {
-    lt_impl,
     le_impl,
+    ge_impl,
+    lt_impl,
     gt_impl,
-    ge_impl
 };
 
 
@@ -542,10 +542,12 @@ void execute_compare(instruction* instr) {
         avm_error("Not a number in compare!");
     }
     else {
-        cmp_func_t op = compare_funcs[instr->opcode - jle_v]; // Is this right?????
+        cmp_func_t op = compare_funcs[instr->opcode - jle_v];
+        printf("rv1 %g rv2 %g\n", rv1->data.num_val, rv2->data.num_val);
         result = (*op)(rv1->data.num_val, rv2->data.num_val);
     }
 
+    printf("resultaris %d\n", result);
     if(!execution_finished && result)
         pc = instr->result->val;
 }
@@ -665,6 +667,24 @@ void libfunc_totalarguments() {
     }
 
 }
+
+
+void libfunc_strtonum() {
+    unsigned n = avm_total_actuals();
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'strtonum\'!");
+    }
+
+
+
+    char* arg = avm_get_actual(0)->data.str_val;
+}
+
+
+void libfunc_sqrt() {}
+void libfunc_cos() {}
+void libfunc_sin() {}
 
 
 void libfunc_argument() {
@@ -966,7 +986,11 @@ library_func_t library_funcs[] = {
     libfunc_typeof,
     libfunc_totalarguments,
     libfunc_argument,
-    libfunc_input
+    libfunc_input,
+    libfunc_strtonum,
+    libfunc_sqrt,
+    libfunc_cos,
+    libfunc_sin,
 };
 
 
@@ -975,12 +999,16 @@ char* lib_func_array[] = {
     "typeof",
     "totalarguments",
     "argument",
-    "input"
+    "input",
+    "strtonum",
+    "sqrt",
+    "cos",
+    "sin",
 }; // To the person reading this: If you add a function here, increment for loop below.
 
 
 unsigned get_libfunc_id(char* id) {
-    for(unsigned i = 0; i < 5; ++i) {
+    for(unsigned i = 0; i < 9; ++i) {
         if(strcmp(lib_func_array[i], id) == 0) {
             return i;
         }
