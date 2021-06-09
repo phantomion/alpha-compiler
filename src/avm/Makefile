@@ -1,6 +1,6 @@
 CC := gcc
 # add useful flags here
-CFLAGS := -Wall -g3 -Og
+CFLAGS := -Wall -g3 -Og -lm
 # change if you don't like the name
 BUILD := ./bin
 # change target to your preference

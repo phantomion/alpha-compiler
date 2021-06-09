@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 avm_memcell stack[AVM_STACKSIZE];
 avm_memcell ax, bx, cx;
@@ -381,7 +382,12 @@ char* itoa(int val) {
 }
 
 
-char* number_tostring(avm_memcell* m) {return strdup(itoa(m->data.num_val));}
+char* number_tostring(avm_memcell* m) {
+    char to_num[20];
+    sprintf(to_num, "%g", m->data.num_val);
+    return strdup(to_num);
+}
+
 char* string_tostring(avm_memcell* m) {return strdup(m->data.str_val);}
 char* bool_tostring(avm_memcell* m) {
     return strdup(m->data.bool_val ? "true" : "false");
@@ -436,8 +442,19 @@ char* table_tostring(avm_memcell* m) {
 
     return table;
 } // Sweet mother of all that is good and pure
-char* userfunc_tostring(avm_memcell* m) {return strdup(itoa(m->data.func_val));}
-char* libfunc_tostring(avm_memcell* m) {return m->data.libfunc_val;}
+char* userfunc_tostring(avm_memcell* m) {
+    char* funcaddr = itoa(m->data.func_val);
+    char* result = calloc(1, 15 + strlen(funcaddr));
+    strcpy(result, "user function ");
+    strcat(result, funcaddr);
+    return strdup(result);
+}
+char* libfunc_tostring(avm_memcell* m) {
+    char* result = calloc(1, 18 + strlen(m->data.libfunc_val));
+    strcpy(result, "library function ");
+    strcat(result, m->data.libfunc_val);
+    return strdup(result);
+}
 char* nil_tostring(avm_memcell* m) {return strdup("nil");}
 char* undef_tostring(avm_memcell* m) {return strdup("undef");}
 
@@ -671,20 +688,102 @@ void libfunc_totalarguments() {
 
 void libfunc_strtonum() {
     unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
 
     if (n != 1) {
         avm_error("Expected ONE argument in \'strtonum\'!");
     }
 
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != string_m) {
+        avm_error("Expected alphanumeric value for \'strtonum\'");
+        return;
+    }
 
+    if (strcmp(arg->data.str_val, "0") == 0) {
+        retval.type = number_m;
+        retval.data.num_val = 0;
+        return;
+    }
 
-    char* arg = avm_get_actual(0)->data.str_val;
+    int result = atof(arg->data.str_val);
+    if (!result) {
+        retval.type = nil_m;
+        return;
+    }
+
+    retval.type = number_m;
+    retval.data.num_val = result;
 }
 
 
-void libfunc_sqrt() {}
-void libfunc_cos() {}
-void libfunc_sin() {}
+void libfunc_sqrt() {
+    unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'sqrt\'!");
+    }
+
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != number_m) {
+        avm_error("Expected numeric value for \'sqrt\'");
+        return;
+    }
+
+    if (arg->data.num_val < 0) {
+        retval.type = nil_m;
+        return;
+    }
+
+    double result = sqrt(arg->data.num_val);
+
+    retval.type = number_m;
+    retval.data.num_val = result;
+}
+
+
+void libfunc_cos() {
+    unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'cos\'!");
+    }
+
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != number_m) {
+        avm_error("Expected numeric value for \'sin\'");
+        return;
+    }
+
+    double result = cos(arg->data.num_val);
+
+    retval.type = number_m;
+    retval.data.num_val = result;
+}
+
+
+void libfunc_sin() {
+    unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'sin\'!");
+        return;
+    }
+
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != number_m) {
+        avm_error("Expected numeric value for \'sin\'");
+        return;
+    }
+
+    double result = sin(arg->data.num_val);
+
+    retval.type = number_m;
+    retval.data.num_val = result;
+}
 
 
 void libfunc_argument() {
