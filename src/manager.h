@@ -40,7 +40,7 @@ expr* manage_assignexpr(expr* lvalue, expr* ex);
 unsigned int manage_ifprefix(expr* ex);
 void manage_ifstmt(unsigned int qq);
 unsigned int manage_elseprefix();
-void manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad);
+stmt_t* manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad, stmt_t* if_stmt, stmt_t* else_stmt);
 unsigned int manage_whilestart();
 unsigned int manage_whilecond(expr* ex);
 void manage_whilestmt(unsigned int whilestart_quad, unsigned int whilecond_quad, stmt_t* stmt);

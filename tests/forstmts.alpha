@@ -3,11 +3,28 @@ function fizzbuzz() {
     for(i = 0; i < 100; i++){
         if (i % 2 == 0) {
             print("Fizz");
+            continue;
         }
         else {
             print("Buzz");
+            while (1) {
+                print("a");
+                break;
+            }
+            if (true) {
+                break;
+            }
+            print("a");
+            break;
         }
     }
 }
 
-print(fizzbuzz);
+fizzbuzz();
+
+/*while(1) {*/
+    /*a++;*/
+    /*if (a > 5) {*/
+        /*continue;*/
+    /*}*/
+/*}*/

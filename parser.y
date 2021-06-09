@@ -69,6 +69,7 @@
 %type <intVal> whilecond
 %type <stmtNode> stmt
 %type <stmtNode> stmt_list
+%type <stmtNode> ifstmt
 %type <stmtNode> continue_stmt
 %type <stmtNode> break_stmt
 %type <stmtNode> block
@@ -150,7 +151,7 @@
 program:    stmt_list;
 
 stmt:       expr SEMICOLON {$$ = null; reset_temp(); $1 = create_short_circuit_assigns($1);}
-            | ifstmt {$$ = null; reset_temp();}
+            | ifstmt {$$ = $1; reset_temp();}
             | whilestmt {$$ = null; reset_temp();}
             | forstmt {$$ = null; reset_temp();}
             | returnstmt {$$ = null; reset_temp();}
@@ -336,8 +337,8 @@ elseprefix: ELSE { $$ = manage_elseprefix(); }
             ;
 
 
-ifstmt: ifprefix stmt                   { manage_ifstmt($1); }
-        | ifprefix stmt elseprefix stmt { manage_ifelse($1, $3); }
+ifstmt: ifprefix stmt                   { $$ = $2; manage_ifstmt($1); }
+        | ifprefix stmt elseprefix stmt { $$ = manage_ifelse($1, $3, $2, $4); }
         ;
 
 

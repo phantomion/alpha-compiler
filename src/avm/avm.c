@@ -560,11 +560,9 @@ void execute_compare(instruction* instr) {
     }
     else {
         cmp_func_t op = compare_funcs[instr->opcode - jle_v];
-        printf("rv1 %g rv2 %g\n", rv1->data.num_val, rv2->data.num_val);
         result = (*op)(rv1->data.num_val, rv2->data.num_val);
     }
 
-    printf("resultaris %d\n", result);
     if(!execution_finished && result)
         pc = instr->result->val;
 }

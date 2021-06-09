@@ -508,9 +508,19 @@ unsigned int manage_elseprefix() {
 }
 
 
-void manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad) {
+stmt_t* manage_ifelse(unsigned int ifp_quad, unsigned int elsep_quad, stmt_t* if_stmt, stmt_t* else_stmt) {
     patchlabel(ifp_quad, elsep_quad+1);
     patchlabel(elsep_quad, curr_quad);
+    if (if_stmt && else_stmt) {
+        if (else_stmt->breaklist)
+            if_stmt->breaklist = else_stmt->breaklist;
+        if (else_stmt->contlist)
+            if_stmt->contlist = else_stmt->contlist;
+        return if_stmt;
+    }
+    else if (if_stmt)
+        return if_stmt;
+    return else_stmt;
 }
 
 
