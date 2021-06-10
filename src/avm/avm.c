@@ -231,7 +231,6 @@ void execute_cycle() {
         return;
     }
     assert(pc < AVM_ENDING_PC);
-    /*printf("mphka\n");*/
     instruction* instr = code + pc;
     assert(instr->opcode >= 0 && instr->opcode <= AVM_MAX_INSTRUCTIONS);
     if (instr->src_line) {
@@ -400,7 +399,6 @@ char* table_tostring(avm_memcell* m) {
         avm_table_bucket* num_bucket = m->data.table_val->num_indexed[i];
 
         while(num_bucket) {
-            printf("edw\n");
             char* key_val = itoa((int)num_bucket->key.data.num_val);
             table = realloc(table, strlen(table) + strlen(key_val));
             strcat(table, key_val);
@@ -442,7 +440,7 @@ char* table_tostring(avm_memcell* m) {
     }
 
     return table;
-} // Sweet mother of all that is good and pure
+}
 char* userfunc_tostring(avm_memcell* m) {
     char* funcaddr = itoa(m->data.func_val);
     char* result = calloc(1, 15 + strlen(funcaddr));
@@ -610,6 +608,108 @@ char* type_strings[] = {
     "nil",
     "undef"
 };
+
+
+void libfunc_objecttotalmembers() {
+
+    unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'objecttotalmembers\'!");
+    }
+
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != table_m) {
+        avm_error("Expected table value for \'objecttotalmembers\'");
+        return;
+    }
+
+    unsigned counter = 0;
+
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* num_bucket = arg->data.table_val->num_indexed[i];
+
+        while(num_bucket) {
+            counter++;
+            num_bucket = num_bucket->next;
+        }
+    }
+
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* str_bucket = arg->data.table_val->str_indexed[i];
+
+        while(str_bucket) {
+            counter++;
+            str_bucket = str_bucket->next;
+        }
+    }
+
+    printf("counter %d\n", counter);
+    retval.type = number_m;
+    retval.data.num_val = counter;
+}
+
+
+void libfunc_objectmemberkeys() {
+
+    unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'objectmemberkeys\'!");
+    }
+
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != table_m) {
+        avm_error("Expected table value for \'objectmemberkeys\'");
+        return;
+    }
+
+    avm_table* new = avm_tablenew();
+    unsigned pos = 0;
+
+    avm_memcell* m = arg;
+
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* num_bucket = m->data.table_val->num_indexed[i];
+
+        while(num_bucket) {
+            avm_memcell* index = malloc(sizeof(avm_memcell));
+            index->type = number_m;
+            index->data.num_val = pos;
+
+            avm_memcell* content = malloc(sizeof(avm_memcell));
+            memcpy(content, num_bucket, sizeof(avm_memcell));
+
+            avm_tablesetelem(new, index, content);
+
+            pos++;
+            num_bucket = num_bucket->next;
+        }
+    }
+
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* str_bucket = m->data.table_val->str_indexed[i];
+
+        while(str_bucket) {
+            avm_memcell* index = malloc(sizeof(avm_memcell));
+            index->type = number_m;
+            index->data.num_val = pos;
+
+            avm_memcell* content = malloc(sizeof(avm_memcell));
+            memcpy(content, str_bucket, sizeof(avm_memcell));
+
+            avm_tablesetelem(new, index, content);
+
+            pos++;
+            str_bucket = str_bucket->next;
+        }
+    }
+
+    retval.type = table_m;
+    retval.data.table_val = new;
+}
 
 
 void libfunc_typeof() {
@@ -1097,6 +1197,8 @@ library_func_t library_funcs[] = {
     libfunc_sqrt,
     libfunc_cos,
     libfunc_sin,
+    libfunc_objectmemberkeys,
+    libfunc_objecttotalmembers
 };
 
 
@@ -1110,11 +1212,13 @@ char* lib_func_array[] = {
     "sqrt",
     "cos",
     "sin",
+    "objectmemberkeys",
+    "objecttotalmembers"
 }; // To the person reading this: If you add a function here, increment for loop below.
 
 
 unsigned get_libfunc_id(char* id) {
-    for(unsigned i = 0; i < 9; ++i) {
+    for(unsigned i = 0; i < 11; ++i) {
         if(strcmp(lib_func_array[i], id) == 0) {
             return i;
         }

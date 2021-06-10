@@ -1,0 +1,6 @@
+t = [{"foo": 5}, {"buzz": 10}, {3: 10}];
+
+
+for(i = 0; i < objecttotalmembers(objectmemberkeys(t)); i++) {
+    print(i);
+}
