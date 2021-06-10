@@ -32,7 +32,7 @@ expr* manage_pre_dec(expr* ex);
 expr* manage_post_dec(expr* ex);
 expr* manage_args(char *id);
 expr* manage_real(double val);
-expr* manage_bool(short int val);
+expr* manage_bool(unsigned char val);
 expr* manage_nil();
 expr* manage_string(char *val);
 expr* manage_number(int val);

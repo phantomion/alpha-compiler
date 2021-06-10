@@ -1,13 +1,27 @@
 t = [{4 : 10}, {56 : "ela"}, {100: "edw"}, {"strindex" : 10}, {"another" : true}];
 
-a = [1, 4, 5];
 print(t);
-print(a);
 
 t["x"] = 2;
 t[10] = 5;
 t[4] = 50;
+t[true] = 10;
 
 print(t.x);
+print(t[10]);
 print(t[4]);
 print(t);
+
+x = true and false;
+print(x);
+x = true == false;
+print(x);
+
+i = 0;
+while (i < 5) {
+    print(i++);
+}
+
+for(i = 0; i < 3; i++) {
+    print(i);
+}

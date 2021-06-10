@@ -313,8 +313,8 @@ block: LCURLY { scope++; } stmt_list RCURLY {hide_scope(scope--); $$ = $3;}
 const:      NUMBER      {$$ = manage_number($1);}
             | STRING    {$$ = manage_string($1);}
             | NIL       {$$ = manage_nil(); }
-            | TRUE      {$$ = manage_bool(1);}
-            | FALSE     {$$ = manage_bool(0);}
+            | TRUE      {$$ = manage_bool('1');}
+            | FALSE     {$$ = manage_bool('0');}
             | REAL      {$$ = manage_real($1);}
             ;
 
