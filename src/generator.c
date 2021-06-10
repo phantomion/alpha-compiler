@@ -237,7 +237,7 @@ void generate_all() {
         (*generators[quads[i].op])(quads + i);
     }
     patch_incomplete_jump();
-    print_instrs();
+    /*print_instrs();*/
 }
 
 void generate_relational(vmopcode op, quad* quad) {

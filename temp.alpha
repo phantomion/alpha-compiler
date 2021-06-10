@@ -1,6 +1,32 @@
 t = [{"foo": 5}, {"buzz": 10}, {3: 10}];
 
-
-for(i = 0; i < objecttotalmembers(objectmemberkeys(t)); i++) {
-    print(i);
+function g() {
+    t = [];
+    for (i = 0; i < 5; i++) {
+        t[i] = i * 10;
+    }
+    return t;
 }
+
+function f(){
+    /*print(15 / 2);*/
+    return [{15 : 2}, {3 : "hello"}, {5 : g()}];
+}
+
+x = [{f : 10}, {print : "malakas"}];
+
+/*print(x);*/
+
+x = objectmemberkeys(t);
+
+y = objecttotalmembers(x);
+
+a = -5;
+a = -a;
+print(a);
+
+print(f());
+
+/*for(i = 0; i < y; i++) {*/
+    /*print(x[i]);*/
+/*}*/
