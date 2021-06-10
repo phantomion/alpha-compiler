@@ -95,6 +95,7 @@ avm_table* avm_tablenew() {
 
     avm_tablebucketsinit(t->num_indexed);
     avm_tablebucketsinit(t->str_indexed);
+    avm_tablebucketsinit(t->bool_indexed);
 
     return t;
 }
@@ -153,6 +154,7 @@ void avm_tablebucketsdestroy(avm_table_bucket** p) {
 void avm_tabledestroy(avm_table *t) {
     avm_tablebucketsdestroy(t->str_indexed);
     avm_tablebucketsdestroy(t->num_indexed);
+    avm_tablebucketsdestroy(t->bool_indexed);
     free(t);
 }
 
@@ -389,7 +391,7 @@ char* number_tostring(avm_memcell* m) {
 
 char* string_tostring(avm_memcell* m) {return strdup(m->data.str_val);}
 char* bool_tostring(avm_memcell* m) {
-    return strdup(m->data.bool_val ? "true" : "false");
+    return strdup(m->data.bool_val == '1' ? "true" : "false");
 }
 char* table_tostring(avm_memcell* m) {
     char* table = calloc(1, 9);
@@ -400,17 +402,17 @@ char* table_tostring(avm_memcell* m) {
 
         while(num_bucket) {
             char* key_val = itoa((int)num_bucket->key.data.num_val);
-            table = realloc(table, strlen(table) + strlen(key_val));
+            table = realloc(table, strlen(table) + strlen(key_val) + 1);
             strcat(table, key_val);
 
-            table = realloc(table, strlen(table) + 2);
+            table = realloc(table, strlen(table) + 3);
             strcat(table, ": ");
 
             char* val_val = avm_tostring(&num_bucket->value);
-            table = realloc(table, strlen(table) + strlen(val_val));
+            table = realloc(table, strlen(table) + strlen(val_val) + 1);
             strcat(table, val_val);
 
-            table = realloc(table, strlen(table) + 1);
+            table = realloc(table, strlen(table) + 2);
             strcat(table, "\n");
 
             num_bucket = num_bucket->next;
@@ -422,21 +424,46 @@ char* table_tostring(avm_memcell* m) {
 
         while(str_bucket) {
             char* key_val = str_bucket->key.data.str_val;
-            table = realloc(table, strlen(table) + strlen(key_val));
+            table = realloc(table, strlen(table) + strlen(key_val) + 1);
             strcat(table, key_val);
 
-            table = realloc(table, strlen(table) + 2);
+            table = realloc(table, strlen(table) + 3);
             strcat(table, ": ");
 
             char* val_val = avm_tostring(&str_bucket->value);
-            table = realloc(table, strlen(table) + strlen(val_val));
+            table = realloc(table, strlen(table) + strlen(val_val) + 1);
             strcat(table, val_val);
 
-            table = realloc(table, strlen(table) + 1);
+            table = realloc(table, strlen(table) + 2);
             strcat(table, "\n");
 
             str_bucket = str_bucket->next;
         }
+    }
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* bool_bucket = m->data.table_val->bool_indexed[i];
+        if (!bool_bucket) continue;
+
+        char* key_val;
+        if (bool_bucket->key.data.bool_val) {
+            key_val = "true";
+        }
+        else {
+            key_val = "false";
+        }
+        table = realloc(table, strlen(table) + strlen(key_val) + 1);
+        strcat(table, key_val);
+
+        table = realloc(table, strlen(table) + 3);
+        strcat(table, ": ");
+
+        char* val_val = avm_tostring(&bool_bucket->value);
+        table = realloc(table, strlen(table) + strlen(val_val) + 1);
+        strcat(table, val_val);
+
+        table = realloc(table, strlen(table) + 2);
+        strcat(table, "\n");
+
     }
 
     return table;
@@ -572,7 +599,10 @@ typedef unsigned char (*tobool_func_t)(avm_memcell*);
 
 unsigned char number_tobool(avm_memcell* m) {return m->data.num_val != 0;}
 unsigned char string_tobool(avm_memcell* m) {return m->data.str_val[0] != 0;}
-unsigned char bool_tobool(avm_memcell* m) {return m->data.bool_val;}
+unsigned char bool_tobool(avm_memcell* m) {
+    if (m->data.bool_val == '1') return 1;
+    else return 0;
+}
 unsigned char table_tobool(avm_memcell* m) {return 1;}
 unsigned char userfunc_tobool(avm_memcell* m) {return 1;}
 unsigned char libfunc_tobool(avm_memcell* m) {return 1;}
@@ -959,6 +989,15 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
 
         return null;
     }
+    else if (index->type == bool_m) {
+        int index_b;
+        if (index->data.bool_val == '1') index_b = 1;
+        else index_b = 0;
+        avm_table_bucket* bucket = table->bool_indexed[index_b];
+        if(bucket && index->data.bool_val == bucket->key.data.bool_val) return &bucket->value;
+
+        return null;
+    }
 
     avm_error("Illegal table index type!");
     return null;
@@ -1011,6 +1050,18 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content
             table->num_indexed[avm_tablehashnumber(index->data.num_val)] = new;
         }
 
+        return;
+    }
+    else if(index->type == bool_m) {
+        int index_b;
+        if (index->data.bool_val == '1') index_b = 1;
+        else index_b = 0;
+        avm_table_bucket* bucket = table->bool_indexed[index_b];
+        if (bucket && bucket->key.data.bool_val == index->data.bool_val) {
+            bucket->value = *content;
+            return;
+        }
+        table->bool_indexed[index_b] = new;
         return;
     }
 

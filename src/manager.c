@@ -421,9 +421,9 @@ expr* manage_real(double val) {
 }
 
 
-expr* manage_bool(short int val) {
+expr* manage_bool(unsigned char val) {
     expr* new = newexpr(constbool_e);
-    new->bool_const = val ? true : false;
+    new->bool_const = val;
     return new;
 }
 
@@ -453,10 +453,10 @@ expr* create_short_circuit_assigns(expr* ex) {
     expr* new = newexpr(assignexpr_e);
     new->sym = new_temp();
     int truelist_quad = curr_quad;
-    emit(assign, manage_bool(1), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool('1'), null, new, curr_quad, yylineno);
     emit(jump, null, null, null, curr_quad+2, yylineno);
     int falselist_quad = curr_quad;
-    emit(assign, manage_bool(0), null, new, curr_quad, yylineno);
+    emit(assign, manage_bool('0'), null, new, curr_quad, yylineno);
 
     patchlist(ex->truelist, truelist_quad);
     patchlist(ex->falselist, falselist_quad);
@@ -489,7 +489,7 @@ expr* manage_assignexpr(expr* lvalue, expr* ex) {
 
 unsigned int manage_ifprefix(expr* ex) {
     ex = create_short_circuit_assigns(ex);
-    emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
+    emit(if_eq, ex, manage_bool('1'), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
     emit(jump, null, null, null, 0, yylineno);
     return quad;
@@ -532,7 +532,7 @@ unsigned int manage_whilestart() {
 
 unsigned int manage_whilecond(expr* ex) {
     ex = create_short_circuit_assigns(ex);
-    emit(if_eq, ex, manage_bool(1), null, curr_quad + 2, yylineno);
+    emit(if_eq, ex, manage_bool('1'), null, curr_quad + 2, yylineno);
     unsigned int quad = curr_quad;
     emit(jump, null, null, null, 0, yylineno);
     return quad;
@@ -599,7 +599,7 @@ void manage_short_circuit(expr* ex) {
         ex->truelist = tmp;
         is_not = 0;
     }
-    emit(if_eq, ex, manage_bool(1), null, 0, yylineno);
+    emit(if_eq, ex, manage_bool('1'), null, 0, yylineno);
     emit(jump, null, null, null, 0, yylineno);
 }
 
@@ -777,7 +777,7 @@ for_stmt* manage_forprefix(int M, expr* ex) {
     for_stmt* prefix = calloc(1, sizeof(for_stmt));
     prefix->test = M;
     prefix->enter = curr_quad;
-    emit(if_eq, ex, manage_bool(1), null, 0, yylineno);
+    emit(if_eq, ex, manage_bool('1'), null, 0, yylineno);
     return prefix;
 }
 
@@ -857,7 +857,7 @@ void print_arg(expr* e) {
             fprintf(yyout, "%-10s", "NIL");
             break;
         case constbool_e: {
-            if (e->bool_const == true) {
+            if (e->bool_const == '1') {
                 fprintf(yyout, "%-10s", "TRUE");
             }
             else {

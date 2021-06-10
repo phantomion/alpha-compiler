@@ -1,6 +1,5 @@
 #ifndef ICODE_H
 #define ICODE_H
-#include <stdbool.h>
 #include "utilities.h"
 
 #define EXPAND_SIZE 1024
@@ -41,7 +40,7 @@ typedef struct expr {
     struct expr* index;
     double num_const;
     char* str_const;
-    bool bool_const;
+    unsigned char bool_const;
     struct expr* next;
 }expr;
 
