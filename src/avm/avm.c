@@ -400,6 +400,7 @@ char* table_tostring(avm_memcell* m) {
         avm_table_bucket* num_bucket = m->data.table_val->num_indexed[i];
 
         while(num_bucket) {
+            printf("edw\n");
             char* key_val = itoa((int)num_bucket->key.data.num_val);
             table = realloc(table, strlen(table) + strlen(key_val));
             strcat(table, key_val);
@@ -842,7 +843,7 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
         avm_table_bucket* bucket = table->str_indexed[avm_tablehashstring(index->data.str_val)];
 
         while(bucket) {
-            if(strcmp(index->data.str_val, bucket->value.data.str_val) == 0) return &bucket->value;
+            if(strcmp(index->data.str_val, bucket->key.data.str_val) == 0) return &bucket->value;
             bucket = bucket->next;
         }
 
@@ -852,7 +853,7 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
         avm_table_bucket* bucket = table->num_indexed[avm_tablehashnumber(index->data.num_val)];
 
         while(bucket) {
-            if(index->data.num_val == bucket->value.data.num_val) return &bucket->value;
+            if(index->data.num_val == bucket->key.data.num_val) return &bucket->value;
             bucket = bucket->next;
         }
 
@@ -877,6 +878,10 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content
 
         if(bucket){
             while(bucket) {
+                if(strcmp(index->data.str_val, bucket->key.data.str_val) == 0) {
+                    bucket->value = *content;
+                    return;
+                }
                 prev = bucket;
                 bucket = bucket->next;
             }
@@ -893,6 +898,10 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content
 
         if(bucket){
             while(bucket) {
+                if (bucket->key.data.num_val == index->data.num_val) {
+                    bucket->value = *content;
+                    return;
+                }
                 prev = bucket;
                 bucket = bucket->next;
             }

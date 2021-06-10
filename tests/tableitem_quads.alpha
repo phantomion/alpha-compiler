@@ -1,3 +1,13 @@
 t = [{4 : 10}, {56 : "ela"}, {100: "edw"}, {"strindex" : 10}, {"another" : true}];
 
+a = [1, 4, 5];
+print(t);
+print(a);
+
+t["x"] = 2;
+t[10] = 5;
+t[4] = 50;
+
+print(t.x);
+print(t[4]);
 print(t);
