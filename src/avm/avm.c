@@ -435,7 +435,9 @@ char* table_tostring(avm_memcell* m) {
         avm_table_bucket* str_bucket = m->data.table_val->str_indexed[i];
 
         while(str_bucket) {
+            printf("mphka1\n");
             char* key_val = str_bucket->key.data.str_val;
+            printf("mphka2\n");
             table = realloc(table, strlen(table) + strlen(key_val) + 1);
             strcat(table, key_val);
 
@@ -520,7 +522,7 @@ char* table_tostring(avm_memcell* m) {
         }
     }
 
-    return table;
+    return strdup(table);
 }
 char* userfunc_tostring(avm_memcell* m) {
     char* funcaddr = itoa(m->data.func_val);
@@ -731,6 +733,68 @@ void libfunc_objecttotalmembers() {
 
     retval.type = number_m;
     retval.data.num_val = counter;
+}
+
+
+void libfunc_objectcopy() {
+    unsigned n = avm_total_actuals();
+    avm_memcell_clear(&retval);
+
+    if (n != 1) {
+        avm_error("Expected ONE argument in \'objectcopy\'!");
+    }
+
+    avm_memcell* arg = avm_get_actual(0);
+    if (arg->type != table_m) {
+        avm_error("Expected table value for \'objectcopy\'");
+        return;
+    }
+
+    avm_table* new = malloc(sizeof(avm_table));
+    avm_tableincrefcounter(new);
+
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* num_bucket = arg->data.table_val->num_indexed[i];
+
+        while(num_bucket) {
+            avm_memcell* index = malloc(sizeof(avm_memcell));
+            index->type = number_m;
+            index->data.num_val = num_bucket->key.data.num_val;
+
+            avm_memcell* content = avm_tablegetelem(arg->data.table_val, index);
+            if(content->type == table_m){
+                avm_memcell* new_content = malloc(sizeof(avm_memcell));
+                memcpy(new_content, content, sizeof(avm_memcell));
+                avm_tablesetelem(new, index, new_content);
+            }
+            else avm_tablesetelem(new, index, content);
+
+            num_bucket = num_bucket->next;
+        }
+    }
+
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
+        avm_table_bucket* str_bucket = arg->data.table_val->str_indexed[i];
+
+        while(str_bucket) {
+            avm_memcell* index = malloc(sizeof(avm_memcell));
+            index->type = string_m;
+            index->data.str_val = str_bucket->key.data.str_val;
+
+            avm_memcell* content = avm_tablegetelem(arg->data.table_val, index);
+            if(content->type == table_m){
+                avm_memcell* new_content = malloc(sizeof(avm_memcell));
+                memcpy(new_content, content, sizeof(avm_memcell));
+                avm_tablesetelem(new, index, new_content);
+            }
+            else avm_tablesetelem(new, index, content);
+
+            str_bucket = str_bucket->next;
+        }
+    }
+
+    retval.type = table_m;
+    retval.data.table_val = new;
 }
 
 
@@ -1363,7 +1427,8 @@ library_func_t library_funcs[] = {
     libfunc_cos,
     libfunc_sin,
     libfunc_objectmemberkeys,
-    libfunc_objecttotalmembers
+    libfunc_objecttotalmembers,
+    libfunc_objectcopy
 };
 
 
@@ -1378,12 +1443,13 @@ char* lib_func_array[] = {
     "cos",
     "sin",
     "objectmemberkeys",
-    "objecttotalmembers"
-}; // To the person reading this: If you add a function here, increment for loop below.
+    "objecttotalmembers",
+    "objectcopy"
+};
 
 
 unsigned get_libfunc_id(char* id) {
-    for(unsigned i = 0; i < 11; ++i) {
+    for(unsigned i = 0; i < 12; ++i) {
         if(strcmp(lib_func_array[i], id) == 0) {
             return i;
         }
