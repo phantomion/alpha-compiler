@@ -1,6 +1,12 @@
-t = [{"foo": 5}, {"buzz": 10}, {3: 10}];
+t = [1, 2];
+p = objectcopy(t);
 
+print(t);
+/*print(p[3][0]);*/
 
-for(i = 0; i < objecttotalmembers(objectmemberkeys(t)); i++) {
-    print(i);
-}
+p[1] = 9;
+p[2] = 10;
+
+/*print("after:");*/
+/*print(t);*/
+print(p);
