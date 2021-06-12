@@ -13,7 +13,7 @@
 %option nounput
 %option noinput
 
-DELIM       [ \t\n]
+DELIM       [ \t\n\r]
 WS          {DELIM}+
 LETTER      [a-zA-Z]
 DIGIT       [0-9]

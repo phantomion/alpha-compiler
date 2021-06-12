@@ -1,7 +1,6 @@
 local die = 2;
 x = 2;
 x++;
-y = a.yes;
 print(typeof(x));
 ::print(::typeof(::x));
 function foo() {
@@ -33,9 +32,13 @@ function foo() {
         local x=::x;
     }
 }
-input();
+a = strtonum("3.12a");
+print(a);
+a = strtonum("mitsos3.12a");
+print(a);
 
 for(i = 0; i < 10; i++) {
+    print("a");
     break;
 }
 
@@ -43,7 +46,7 @@ if (x>3 and y>2) {
 }
 else { x = 2; }
 for(i = 0; i > 0 and x == 10; i++) {}
-while (x != 3 or x == 5){}
+while (not x){}
 function f(){
    return a == 2 and not (x <=3);
 }
@@ -58,3 +61,5 @@ x = f(x >3 and x, b == 3 or a);
    line
    comment
    */
+
+

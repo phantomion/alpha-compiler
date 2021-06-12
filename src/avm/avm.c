@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 
 avm_memcell stack[AVM_STACKSIZE];
@@ -948,13 +949,14 @@ void libfunc_input() {
         char* input = calloc(1, 256);
         int input_max = 256;
         int i = 0;
-        char c;
-        while ((c = getc(stdin)) != '\n') {
+        char c = getc(stdin);
+        while (c != '\n' && c != EOF) {
             if (i == input_max) {
                 input = realloc(input, input_max + 256);
                 input_max = input_max + 256;
             }
             input[i++] = c;
+            c = getc(stdin);
         }
         input[i] = '\0';
         double num;
@@ -1018,7 +1020,14 @@ void libfunc_strtonum() {
         return;
     }
 
-    int result = atof(arg->data.str_val);
+    for (size_t i = 0; i < strlen(arg->data.str_val); i++) {
+        if (!isdigit(arg->data.str_val[i])) {
+            retval.type = nil_m;
+            return;
+        }
+    }
+
+    double result = atof(arg->data.str_val);
     if (!result) {
         retval.type = nil_m;
         return;
@@ -1065,7 +1074,7 @@ void libfunc_cos() {
 
     avm_memcell* arg = avm_get_actual(0);
     if (arg->type != number_m) {
-        avm_error("Expected numeric value for \'sin\'");
+        avm_error("Expected numeric value for \'cos\'");
         return;
     }
 
@@ -1412,7 +1421,7 @@ void execute_call(instruction* instr) {
             break;
         default: {
             char* s = avm_tostring(func);
-            printf("Error: call: cannot bind \'%s\' to function!\n", s);
+            printf("Error: call: cannot bind \'%s\' to function at line %d!\n", s, instr->src_line);
             free(s);
             execution_finished = 1;
         }
