@@ -1,5 +1,6 @@
 #include "utilities.h"
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 int scope = 0;

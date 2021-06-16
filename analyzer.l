@@ -84,7 +84,7 @@ COMMENT     \/\/.*$
 <STR>\"        { /* saw closing quote - all done */
     BEGIN(INITIAL);
     *string_buf_ptr = '\0';
-    yylval.strVal = string_buf;
+    yylval.strVal = strdup(string_buf);
     return STRING;
 }
 

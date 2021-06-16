@@ -98,19 +98,24 @@ expr* manage_var(char *id) {
             yy_alphaerror("Symbol not accessible");
             return newexpr(nil_e);
         case VARS: {
-            symbol* symbol = symtable_get(id, VAR);
+            symbol* symbol = symtable_get(id, LOCALVAR);
             if (symbol) {
                 return lvalue_expr(symbol);
             }
-            symbol = symtable_get(id, LOCALVAR);
+            symbol = symtable_get(id, VAR);
             if (symbol) {
                 return lvalue_expr(symbol);
             }
         }
         case FORMAL_ARGUMENT:
             return lvalue_expr(symtable_get(id, FORMAL));
-        case USERFUNC:
-            return lvalue_expr(symtable_get(id, USERFUNC));
+        case USERFUNC: {
+            symbol* sym = scope_get(id, scope);
+            if (!sym) {
+                sym = symtable_get(id, USERFUNC);
+            }
+            return lvalue_expr(sym);
+        }
         case LIBFUNC:
             return lvalue_expr(symtable_get(id, LIBFUNC));
         case GLOBAL_VAR:
@@ -161,7 +166,9 @@ expr* manage_function(char *id) {
         yy_alphaerror("Symbol redefinition");
     }
     else {
-        func = symtable_get(id, USERFUNC);
+        //error here
+        /*func = symtable_get(id, USERFUNC);*/
+        func = scope_get(id, scope);
         func->func_addr = curr_quad;
     }
 

@@ -237,7 +237,7 @@ void generate_all() {
         (*generators[quads[i].op])(quads + i);
     }
     patch_incomplete_jump();
-    /*print_instrs();*/
+    print_instrs();
 }
 
 void generate_relational(vmopcode op, quad* quad) {
@@ -366,7 +366,6 @@ void generate_param(quad* quad) {
     emit_instr(t);
 }
 
-// careful here ta allazoume edw pera ara prosoxh meta
 void generate_ret(quad* quad) {
     quad->taddress = curr_instr;
     instruction* t = calloc(1, sizeof(instruction));
@@ -449,7 +448,7 @@ void print_instr_arg(vmarg* vma) {
             fprintf(yyout, "%d:%-10s", vma->type, string_consts[vma->val]);
             break;
         case userfunc_a:
-            fprintf(yyout, "%d:%-10s", vma->type, user_funcs[vma->val]->id);
+            fprintf(yyout, "%d:%-10s %d", vma->type, user_funcs[vma->val]->id, vma->val);
             break;
         case libfunc_a:
             fprintf(yyout, "%d:%-10s", vma->type, lib_funcs[vma->val]);

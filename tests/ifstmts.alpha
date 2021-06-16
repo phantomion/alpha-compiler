@@ -1,5 +1,2 @@
-if(2 < 3) {
-    x = 14;
-} else {
-    x = 32;
-}
+a = [{"x" : (function append(d) {})}];
+a..x(d);

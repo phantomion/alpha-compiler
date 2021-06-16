@@ -1,15 +1,32 @@
-sprite..move(dx, dy, dd);
+function Line(x0, x1, y0, y1) {
+    return [{"draw" : (function (x, y) {
+            print("x0 = ", x, " y0 = ", y, "\n");
+            })}];
+}
 
-w = g();
+function Point(x, y) {
+    return [
+    {"x": x},
+    {"y": y},
+    {"move": (function (x, y) {
+                print("Moving point to x: ", x, " y: ", y, "\n");
+                })}
+    ];
+}
 
-x = f(y) (a, b);
+l = Line(1, 2, 3, 4);
+l.draw(1, 4);
 
-x = [-4, 13, 12.32, a+b];
+p = Point(4, 10);
+p.move(10, 23);
 
-t = [{"x" : 0}, {5 : a+b}, {-1: 0}];
+t = [4];
+print(t[0], "\n");
+t[0] = nil;
+print(t[0], "\n");
+print(objecttotalmembers(t), "\n");
 
-x = (function(c, d) {return c+d;}) (1, 2);
-
-y = test().x;
-test().x = 2;
-test()[x] = 2;
+a = [{"gamw" : 3}];
+a.x = a;
+a.b = [234, "asd", 4];
+print(a, "\n");

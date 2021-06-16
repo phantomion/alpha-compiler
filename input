@@ -1,25 +1,23 @@
 local die = 2;
 x = 2;
 x++;
-print(typeof(x));
-::print(::typeof(::x));
+print(typeof(x), "\n");
+::print(::typeof(::x), "\n");
 function foo() {
     function qq(bar) {
         return qq;
     }
-    function foo(bar, takos, foo) {
-        takos--;
-        x++;
-        bar = 5;
-        foo = 5;
-        x = 5;
+    function foo() {
+        ::print("gamw to xristo\n");
         local foo = 2;
-        return bar + foo;
+        return foo;
         function h() {
             /*return bar + takos;*/
         }
     }
-    local x++;
+    foo();
+    local x = 0;
+    x++;
     x = x + 2;
     mhtsos = 2 + 5 * 3;
     {
@@ -27,22 +25,24 @@ function foo() {
             local d = 10;
         }
     }
-    ::x;
+    ::x++;
+    print(::x, "\n");
     {
         local x=::x;
     }
 }
+foo();
 a = strtonum("3.12a");
-print(a);
+print(a, "\n");
 a = strtonum("mitsos3.12a");
-print(a);
+print(a, "\n");
 
 for(i = 0; i < 10; i++) {
-    print("a");
+    print("a\n");
     break;
 }
 
-if (x>3 and y>2) {
+if (x>3) {
 }
 else { x = 2; }
 for(i = 0; i > 0 and x == 10; i++) {}
@@ -50,11 +50,6 @@ while (not x){}
 function f(){
    return a == 2 and not (x <=3);
 }
-a[x > 2];
-a = [{x > 2 and d == 2: y == 2 or h >= 3}];
-x = not x;
-f().x[ a > 3 and b];
-x = f(x >3 and x, b == 3 or a);
 
 // this is a comment
 /* multi

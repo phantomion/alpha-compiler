@@ -66,7 +66,7 @@ void reset_temp() {
 
 symbol* new_temp(){
     char* name = new_temp_name();
-    symbol* sym = symtable_get(name, LOCALVAR);
+    symbol* sym = scope_get(name, scope);
 
     temp_counter++;
     if(sym == null) {

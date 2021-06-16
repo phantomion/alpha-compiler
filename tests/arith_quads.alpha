@@ -1,16 +1,20 @@
-function f(a, b) {
-    print("sthn f mesa");
+x = 5;
+
+function foo() {
+    print("global foo\n");
 }
 
-print(strtonum("123"));
+{
+    local x = 10;
+    function foo() {
+        function foo() {
+            print("here\n");
+        }
+        x = 10;
+        ::x++;
+        print(::x, "\n");
+        ::foo();
+    }
+    foo();
+}
 
-print(sqrt(0));
-
-print(cos(60));
-
-print(sin(60));
-
-print(print);
-print(f);
-
-print(f("2"));
