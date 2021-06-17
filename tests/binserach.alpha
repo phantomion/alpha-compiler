@@ -1,0 +1,36 @@
+t = [1, 4, 6, 10, 123, 1235, 4580, 400000];
+
+function binserach(t, value) {
+    len = objecttotalmembers(t);
+    local low = 0;
+    local high = len - 1;
+    while (low <= high) {
+        mid = (low + high + 1) / 2;
+        if (t[mid] > value)
+            high = mid - 1;
+        else if (t[mid] < value)
+            low = mid + 1;
+        else
+            return mid;
+    }
+    return false;
+}
+
+print(binserach(t, 6), "\n");
+
+function binserachrecur(t, value) {
+    function serach(t, low, high, value) {
+        if (low > high)
+            return false;
+        local mid = (low + high + 1) / 2;
+        print(mid, "\n");
+        if (t[mid] > value)
+            return serach(t, low, mid - 1, value);
+        if (t[mid] < value)
+            return serach(t, mid + 1, high, value);
+        return mid;
+    }
+    return serach(t, 0, objecttotalmembers(t) - 1, value);
+}
+
+print(binserachrecur(t, 10), "\n");
