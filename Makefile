@@ -40,6 +40,7 @@ clean:
 	rm -rf $(BUILD)
 	rm src/analyzer.*
 	rm src/parser.*
+	make clean -C src/avm
 
 test:
 	make run ARGS=tests/arith_quads.alpha
