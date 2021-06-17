@@ -18,6 +18,7 @@ unsigned code_size = 0;
 unsigned total_actuals = 0;
 unsigned total_globals = 0;
 instruction* code = null;
+unsigned print_level = 1;
 
 extern double* num_consts;
 extern unsigned total_num_consts;
@@ -395,6 +396,24 @@ char* itoa(int val) {
 }
 
 
+char* tab_this(char* table){
+    for(unsigned i = 0; i < print_level; ++i) {
+        table = realloc(table, strlen(table)+ 2);
+        strcat(table, "\t");
+    }
+    return table;
+}
+
+
+char* tab_that(char* table) {
+    for(unsigned i = 1; i < print_level; ++i) {
+        table = realloc(table, strlen(table) + 5);
+        strcat(table, "\t   ");
+    }
+    return table;
+}
+
+
 char* number_tostring(avm_memcell* m) {
     char to_num[20];
     sprintf(to_num, "%g", m->data.num_val);
@@ -408,6 +427,8 @@ char* bool_tostring(avm_memcell* m) {
 
 char* buckets_tostring(avm_table_bucket* bucket, avm_memcell* m, char* table) {
         while(bucket) {
+            table = tab_this(table);
+
             char* key_val = avm_tostring(&bucket->key);
             table = realloc(table, strlen(table) + strlen(key_val) + 1);
             strcat(table, key_val);
@@ -421,7 +442,9 @@ char* buckets_tostring(avm_table_bucket* bucket, avm_memcell* m, char* table) {
                 strcat(table, "Table");
             }
             else {
+                if(bucket->value.type == table_m) print_level++;
                 char* val_val = avm_tostring(&bucket->value);
+                if(bucket->value.type == table_m) print_level--;
                 table = realloc(table, strlen(table) + strlen(val_val) + 1);
                 strcat(table, val_val);
             }
@@ -435,8 +458,8 @@ char* buckets_tostring(avm_table_bucket* bucket, avm_memcell* m, char* table) {
 }
 
 char* table_tostring(avm_memcell* m) {
-    char* table = calloc(1, 9);
-    strcat(table, "Table[ \n");
+    char* table = calloc(1, 10);
+    strcat(table, "Table [ \n");
 
     for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
         table = buckets_tostring(m->data.table_val->num_indexed[i], m, table);
@@ -448,6 +471,8 @@ char* table_tostring(avm_memcell* m) {
         table = buckets_tostring(m->data.table_val->userfunc_indexed[i], m, table);
     for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
         table = buckets_tostring(m->data.table_val->libfunc_indexed[i], m, table);
+
+    table = tab_that(table);
 
     table = realloc(table, strlen(table) + 2);
     strcat(table, "]");
