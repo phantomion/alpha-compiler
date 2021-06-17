@@ -28,6 +28,16 @@ extern unsigned total_lib_funcs;
 extern user_func** user_funcs;
 extern unsigned total_user_funcs;
 
+char* avm_memcell_types[] = {
+    "number",
+    "string",
+    "bool",
+    "table",
+    "userfunc",
+    "libfunc",
+    "nil",
+    "undefined"
+};
 
 static void avm_initstack() {
     for (int i = 0; i < AVM_STACKSIZE; i++) {
@@ -338,7 +348,7 @@ void avm_calllibfunc(char* id) {
     library_func_t f = avm_getlibraryfunc(id);
 
     if(!f) {
-        printf("Error: Unsupported lib func \'%s\' called!\n", id);
+        fprintf(stdout, COLOR_RED"error"COLOR_RESET": Unsupported lib func \'%s\' called at line %d!\n", id, curr_line);
         execution_finished = 1;
     }
     else {
@@ -531,7 +541,6 @@ void execute_arithmetic(instruction* instr) {
 
     if(rv1->type != number_m || rv2->type != number_m) {
         avm_error("Not a number in arithmetic!");
-        execution_finished = 1;
     }
     else {
         arithmetic_func_t op = arithmetic_funcs[instr->opcode - add_v];
@@ -569,7 +578,7 @@ void execute_compare(instruction* instr) {
     assert(rv1 && rv2);
 
     if(rv1->type != number_m || rv2->type != number_m) {
-        avm_error("Not a number in compare!");
+        avm_error("Not a number in comparison!");
     }
     else {
         cmp_func_t op = compare_funcs[instr->opcode - jle_v];
@@ -642,54 +651,41 @@ void libfunc_objecttotalmembers() {
         return;
     }
 
-    /*unsigned counter = 0;*/
-
-    /*for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {*/
-        /*avm_table_bucket* num_bucket = arg->data.table_val->num_indexed[i];*/
-
-        /*while(num_bucket) {*/
-            /*counter++;*/
-            /*num_bucket = num_bucket->next;*/
-        /*}*/
-    /*}*/
-
-    /*for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {*/
-        /*avm_table_bucket* str_bucket = arg->data.table_val->str_indexed[i];*/
-
-        /*while(str_bucket) {*/
-            /*counter++;*/
-            /*str_bucket = str_bucket->next;*/
-        /*}*/
-    /*}*/
-
-    /*for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {*/
-        /*avm_table_bucket* bool_bucket = arg->data.table_val->bool_indexed[i];*/
-
-        /*while(bool_bucket) {*/
-            /*counter++;*/
-            /*bool_bucket = bool_bucket->next;*/
-        /*}*/
-    /*}*/
-    /*for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {*/
-        /*avm_table_bucket* userfunc_bucket = arg->data.table_val->userfunc_indexed[i];*/
-
-        /*while(userfunc_bucket) {*/
-            /*counter++;*/
-            /*userfunc_bucket = userfunc_bucket->next;*/
-        /*}*/
-    /*}*/
-    /*for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {*/
-        /*avm_table_bucket* libfunc_bucket = arg->data.table_val->libfunc_indexed[i];*/
-
-        /*while(libfunc_bucket) {*/
-            /*counter++;*/
-            /*libfunc_bucket = libfunc_bucket->next;*/
-        /*}*/
-    /*}*/
     retval.type = number_m;
     retval.data.num_val = arg->data.table_val->total;
 }
 
+
+void objectcopy_buckets(avm_table* table, avm_memcell* arg, avm_table_bucket* bucket, avm_memcell_t type) {
+    while(bucket) {
+        avm_memcell* index = calloc(1, sizeof(avm_memcell));
+        index->type = type;
+        switch (index->type) {
+            case number_m:
+                index->data.num_val = bucket->key.data.num_val;
+                break;
+            case string_m:
+                index->data.str_val = strdup(bucket->key.data.str_val);
+                break;
+            case bool_m:
+                index->data.bool_val = bucket->key.data.bool_val;
+                break;
+            case userfunc_m:
+                index->data.func_val = bucket->key.data.func_val;
+                break;
+            case libfunc_m:
+                index->data.libfunc_val = strdup(bucket->key.data.libfunc_val);
+                break;
+            default:
+                assert(0);
+        }
+
+        avm_memcell* content = avm_tablegetelem(arg->data.table_val, index);
+        avm_tablesetelem(table, index, content);
+
+        bucket = bucket->next;
+    }
+}
 
 void libfunc_objectcopy() {
     unsigned n = avm_total_actuals();
@@ -709,37 +705,34 @@ void libfunc_objectcopy() {
     avm_tableincrefcounter(new);
 
     for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
-        avm_table_bucket* num_bucket = arg->data.table_val->num_indexed[i];
-
-        while(num_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = number_m;
-            index->data.num_val = num_bucket->key.data.num_val;
-
-            avm_memcell* content = avm_tablegetelem(arg->data.table_val, index);
-            avm_tablesetelem(new, index, content);
-
-            num_bucket = num_bucket->next;
-        }
-
-        avm_table_bucket* str_bucket = arg->data.table_val->str_indexed[i];
-
-        while(str_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = string_m;
-            index->data.str_val = strdup(str_bucket->key.data.str_val);
-
-            avm_memcell* content = avm_tablegetelem(arg->data.table_val, index);
-            avm_tablesetelem(new, index, content);
-
-            str_bucket = str_bucket->next;
-        }
+        objectcopy_buckets(new, arg, arg->data.table_val->num_indexed[i], number_m);
+        objectcopy_buckets(new, arg, arg->data.table_val->str_indexed[i], string_m);
+        objectcopy_buckets(new, arg, arg->data.table_val->bool_indexed[i], bool_m);
+        objectcopy_buckets(new, arg, arg->data.table_val->userfunc_indexed[i], userfunc_m);
+        objectcopy_buckets(new, arg, arg->data.table_val->libfunc_indexed[i], libfunc_m);
     }
 
     retval.type = table_m;
     retval.data.table_val = new;
 }
 
+
+unsigned objectmemberkeys_buckets(avm_table* table, avm_table_bucket* bucket, unsigned pos) {
+    while(bucket) {
+        avm_memcell* index = calloc(1, sizeof(avm_memcell));
+        index->type = number_m;
+        index->data.num_val = pos;
+
+        avm_memcell* content = calloc(1, sizeof(avm_memcell));
+        memcpy(content, bucket, sizeof(avm_memcell));
+
+        avm_tablesetelem(table, index, content);
+
+        pos++;
+        bucket = bucket->next;
+    }
+    return pos;
+}
 
 void libfunc_objectmemberkeys() {
 
@@ -762,93 +755,17 @@ void libfunc_objectmemberkeys() {
 
     avm_memcell* m = arg;
 
-    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
-        avm_table_bucket* num_bucket = m->data.table_val->num_indexed[i];
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
+        pos = objectmemberkeys_buckets(new, m->data.table_val->num_indexed[i], pos);
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
+        pos = objectmemberkeys_buckets(new, m->data.table_val->str_indexed[i], pos);
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
+        pos = objectmemberkeys_buckets(new, m->data.table_val->bool_indexed[i], pos);
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
+        pos = objectmemberkeys_buckets(new, m->data.table_val->userfunc_indexed[i], pos);
+    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++)
+        pos = objectmemberkeys_buckets(new, m->data.table_val->libfunc_indexed[i], pos);
 
-        while(num_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = number_m;
-            index->data.num_val = pos;
-
-            avm_memcell* content = calloc(1, sizeof(avm_memcell));
-            memcpy(content, num_bucket, sizeof(avm_memcell));
-
-            avm_tablesetelem(new, index, content);
-
-            pos++;
-            num_bucket = num_bucket->next;
-        }
-    }
-
-    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
-        avm_table_bucket* str_bucket = m->data.table_val->str_indexed[i];
-
-        while(str_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = number_m;
-            index->data.num_val = pos;
-
-            avm_memcell* content = calloc(1, sizeof(avm_memcell));
-            memcpy(content, str_bucket, sizeof(avm_memcell));
-
-            avm_tablesetelem(new, index, content);
-
-            pos++;
-            str_bucket = str_bucket->next;
-        }
-    }
-
-    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
-        avm_table_bucket* bool_bucket = m->data.table_val->bool_indexed[i];
-
-        while(bool_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = number_m;
-            index->data.num_val = pos;
-
-            avm_memcell* content = calloc(1, sizeof(avm_memcell));
-            memcpy(content, bool_bucket, sizeof(avm_memcell));
-
-            avm_tablesetelem(new, index, content);
-
-            pos++;
-            bool_bucket = bool_bucket->next;
-        }
-    }
-    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
-        avm_table_bucket* userfunc_bucket = m->data.table_val->userfunc_indexed[i];
-
-        while(userfunc_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = number_m;
-            index->data.num_val = pos;
-
-            avm_memcell* content = calloc(1, sizeof(avm_memcell));
-            memcpy(content, userfunc_bucket, sizeof(avm_memcell));
-
-            avm_tablesetelem(new, index, content);
-
-            pos++;
-            userfunc_bucket = userfunc_bucket->next;
-        }
-    }
-    for (size_t i = 0; i < AVM_TABLE_HASHSIZE; i++) {
-        avm_table_bucket* libfunc_bucket = m->data.table_val->libfunc_indexed[i];
-
-        while(libfunc_bucket) {
-            avm_memcell* index = calloc(1, sizeof(avm_memcell));
-            index->type = number_m;
-            index->data.num_val = pos;
-
-            avm_memcell* content = calloc(1, sizeof(avm_memcell));
-            memcpy(content, libfunc_bucket, sizeof(avm_memcell));
-
-            avm_tablesetelem(new, index, content);
-
-            pos++;
-            libfunc_bucket = libfunc_bucket->next;
-        }
-    }
     retval.type = table_m;
     retval.data.table_val = new;
 }
@@ -1140,7 +1057,8 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
         return null;
     }
 
-    avm_error("Illegal table index type!");
+    fprintf(stdout, "%d: "COLOR_RED"error:"COLOR_RESET" illegal table index type: %s\n", curr_line, avm_memcell_types[index->type]);
+    execution_finished = 1;
     return null;
 }
 
@@ -1256,7 +1174,8 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index, avm_memcell* content
         return;
     }
 
-    avm_error("Illegal table index type!");
+    fprintf(stdout, "%d: "COLOR_RED"error:"COLOR_RESET" illegal table index type: %s\n", curr_line, avm_memcell_types[index->type]);
+    execution_finished = 1;
 }
 
 
@@ -1360,7 +1279,7 @@ void execute_call(instruction* instr) {
             break;
         default: {
             char* s = avm_tostring(func);
-            printf("Error: call: cannot bind \'%s\' to function at line %d!\n", s, instr->src_line);
+            fprintf(stdout, COLOR_RED"error"COLOR_RESET": call: cannot bind \'%s\' to function at line %d!\n", s, instr->src_line);
             free(s);
             execution_finished = 1;
         }

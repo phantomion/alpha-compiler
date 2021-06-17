@@ -25,3 +25,6 @@ c = objectcopy(b);
 print("b = ", b, "\n");
 print("c = ", c, "\n");
 
+d = objectmemberkeys(c);
+print("d = ", d, "\n");
+
